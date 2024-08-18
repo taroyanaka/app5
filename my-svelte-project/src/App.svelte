@@ -40,11 +40,11 @@ let url_list = '';
 			urls = url_list_lines.slice(0, open_volume);
 			urls.forEach(url => service_tab_open(url));
 		}
-		function service_toggle_edit_url_name() {
-			is_editing_url_name = !is_editing_url_name;
+		function service_toggle_edit_app5_title() {
+			is_editing_app5_title = !is_editing_app5_title;
 		}
-		function service_update_url_name() {
-			is_editing_url_name = false;
+		function service_update_app5_title() {
+			is_editing_app5_title = false;
 		}
 	/////////////////////////////client/////////////////////////////
 	/////////////////////////////client/////////////////////////////
@@ -66,7 +66,7 @@ let url_list = '';
 /////////////////////////////AI/////////////////////////////
 // 以下のコードを以下のルールで書き換えて
 // pop_up_url => app5
-// url_name => app5_title TEXT not nullで1文字以上100文字以下
+// app5_title => app5_title TEXT not nullで1文字以上100文字以下
 // url_list => app5_text TEXT nullで1文字以上1000文字以下
 /////////////////////////////AI/////////////////////////////
 	
@@ -471,9 +471,9 @@ async function delete_record(id) {
 		<div class="right-column">
 			{#if is_editing_app5_title}
 				<input type="text" bind:value={app5_title} />
-				<button on:click={service_update_url_name}>Update</button>
+				<button on:click={service_update_app5_title}>Update</button>
 			{:else}
-				<button on:click={service_toggle_edit_url_name}>Change Title</button>
+				<button on:click={service_toggle_edit_app5_title}>Change Title</button>
 			{/if}
 			<!-- test_app5_textを代入するボタン -->
 			<button on:click={() => app5_text = test_app5_text}>Test Text List</button>
