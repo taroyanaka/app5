@@ -43,6 +43,7 @@
       background-color: #0056b3;
     }
   </style>
+  <script src="./vue3.js"></script>
 </head>
 <body>
   <div id="app">
@@ -68,7 +69,6 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
   <script>
     const app = Vue.createApp({
       data() {
@@ -117,9 +117,7 @@
           alert('アンケートが見つかりません。作成画面でアンケートを作成してください。');
         }
       }
-    });
-
-    app.mount('#app');
+    }).mount('#app');
   </script>
 </body>
 </html>
