@@ -38,6 +38,7 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     }
   </style>
+  <script src="./vue3.js"></script>
 </head>
 <body>
   <div id="app">
@@ -57,7 +58,6 @@
     <button @click="submitQuestions">アンケートを保存</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
   <script>
     const app = Vue.createApp({
       data() {
@@ -79,9 +79,9 @@
           }
         }
       }
-    });
+    }).mount('#app');
 
-    app.mount('#app');
+
   </script>
 </body>
 </html>
