@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>管理者用アンケート回答表示</title>
+  <script src="./vue3.js"></script>
+</head>
+<body>
+  <div id="app">
+    <h1>アンケート回答一覧</h1>
+    <button @click="fetchResponses">取得fetchResponses</button>
+    <button @click="initDatabase">データベース初期化</button>
+    <button @click="initDatabase2">データベース初期化2</button>
+    <button @click="initDatabase3">データベース初期化3</button>
+    <div v-if="loading">読み込み中...</div>
+    <div v-else>
+      <div v-if="error" class="error">{{ error }}</div>
+      <div v-else>
+        <table>
+          <thead>
+            <tr>
+              <th>回答ID</th>
+              <th>質問ID</th>
+              <th>回答者ID</th>
+              <th>回答値</th>
+              <th>回答日時</th>
+              <th>質問テキスト</th>
+              <th>アンケートタイトル</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="response in responses" :key="response.id">
+              <td>{{ response.id }}</td>
+              <td>{{ response.question_id }}</td>
+              <td>{{ response.respondent_id }}</td>
+              <td>{{ response.response_value }}</td>
+              <td>{{ response.created_at }}</td>
+              <td>{{ response.question_text }}</td>
+              <td>{{ response.survey_title }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const app = Vue.createApp({
+      data() {
+        return {
+          responses: [],
+          loading: true,
+          error: null,
+          adminUid: 'user3_uid', // サンプルUID
+          initPassword: 'init', // 初期化パスワード
+          endpoint: 'http://localhost:8000' // エンドポイント
+        };
+      },
+      methods: {
+        async fetchResponses() {
+          try {
+            const response = await fetch(`${this.endpoint}/survey/responses`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ uid: this.adminUid })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              this.responses = data.responses;
+            } else {
+              this.error = data.error || 'データの取得に失敗しました。';
+            }
+          } catch (error) {
+            this.error = 'データの取得中にエラーが発生しました。';
+          } finally {
+            this.loading = false;
+          }
+        },
+        async initDatabase() {
+          try {
+            const response = await fetch(`${this.endpoint}/survey/init-database`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ password: this.initPassword })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              alert('データベースが初期化されました。');
+              this.fetchResponses(); // 初期化後にデータを再取得
+            } else {
+              this.error = data.error || 'データベースの初期化に失敗しました。';
+            }
+          } catch (error) {
+            this.error = 'データベースの初期化中にエラーが発生しました。';
+          }
+        },
+        async initDatabase2() {
+          try {
+            const response = await fetch(`${this.endpoint}/survey/init-database2`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ password: this.initPassword })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              alert('データベースが初期化されました。');
+              this.fetchResponses(); // 初期化後にデータを再取得
+            } else {
+              this.error = data.error || 'データベースの初期化に失敗しました。';
+            }
+          } catch (error) {
+            this.error = 'データベースの初期化中にエラーが発生しました。';
+          }
+        },
+        async initDatabase3() {
+          try {
+            const response = await fetch(`${this.endpoint}/survey/init-database3`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ password: this.initPassword })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              alert('データベースが初期化されました。');
+              this.fetchResponses(); // 初期化後にデータを再取得
+            } else {
+              this.error = data.error || 'データベースの初期化に失敗しました。';
+            }
+          } catch (error) {
+            this.error = 'データベースの初期化中にエラーが発生しました。';
+          }
+        },
+      },
+      mounted() {
+        // this.fetchResponses();
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
