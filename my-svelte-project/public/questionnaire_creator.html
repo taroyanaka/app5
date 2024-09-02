@@ -5,34 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アンケート作成</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background-color: #f0f0f0;
-    }
-    h1 {
-      color: #333;
-    }
-    input[type="text"] {
-      padding: 10px;
-      width: 300px;
-      margin-right: 10px;
-      margin-bottom: 10px;
-    }
-    button {
-      padding: 10px 15px;
-      background-color: #007bff;
-      color: white;
-      border: none;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-    button:hover {
-      background-color: #0056b3;
-    }
     .question-container {
-      background-color: white;
-      padding: 10px;
       margin-bottom: 10px;
       border-radius: 5px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -56,32 +29,131 @@
 
     <button @click="addQuestion">質問を追加</button>
     <button @click="submitQuestions">アンケートを保存</button>
+
+    <h2>発注した質問一覧</h2>
+    <ul>
+      <li v-for="question in orderedQuestions" :key="question.id">
+        {{ question.question_text }}
+        <button @click="deleteQuestion(question.id)">削除</button>
+      </li>
+    </ul>
   </div>
 
   <script>
     const app = Vue.createApp({
       data() {
         return {
-          questions: [{ text: '', selectedAnswer: null }]
+          questions: [{ text: '', selectedAnswer: null }],
+          orderedQuestions: [],
+          surveyTitle: '',
+          surveyDescription: '',
+          surveyPrice: 0,
+          requesterUid: 'requester-uid-sample' // サンプルUID
         }
       },
       methods: {
         addQuestion() {
           this.questions.push({ text: '', selectedAnswer: null });
         },
-        submitQuestions() {
+        async submitQuestions() {
           const validQuestions = this.questions.filter(q => q.text.length > 0 && q.selectedAnswer !== null);
           if (validQuestions.length > 0) {
-            localStorage.setItem('surveyQuestions', JSON.stringify(validQuestions));
-            alert('アンケートが保存されました！回答画面へ移動してください。');
+            const surveyData = {
+              uid: this.requesterUid,
+              title: this.surveyTitle,
+              description: this.surveyDescription,
+              price: this.surveyPrice,
+              questions: validQuestions
+            };
+
+            try {
+              const response = await fetch('/survey/create', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(surveyData)
+              });
+              const data = await response.json();
+              if (data.id) {
+                alert('アンケートが保存されました！');
+                await this.saveQuestions(data.id, validQuestions);
+              } else {
+                alert('アンケートの保存に失敗しました。');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+            }
           } else {
             alert('少なくとも1つの有効な質問と回答が必要です。');
           }
+        },
+        async saveQuestions(surveyId, questions) {
+          for (const question of questions) {
+            try {
+              const response = await fetch(`/survey/${surveyId}/add-question`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  uid: this.requesterUid,
+                  question_text: question.text
+                })
+              });
+              const data = await response.json();
+              if (!data.id) {
+                alert('質問の保存に失敗しました。');
+              } else {
+                await this.fetchOrderedQuestions();
+              }
+            } catch (error) {
+              console.error('Error:', error);
+            }
+          }
+        },
+        async fetchOrderedQuestions() {
+          try {
+            const response = await fetch('/survey/read', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ uid: this.requesterUid })
+            });
+            const data = await response.json();
+            this.orderedQuestions = data.surveys.flatMap(survey => survey.questions);
+          } catch (error) {
+            console.error('Error:', error);
+          }
+        },
+        async deleteQuestion(questionId) {
+          if (confirm('本当にこの質問を削除しますか？')) {
+            try {
+              const response = await fetch(`/survey/${questionId}/delete-question`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ uid: this.requesterUid })
+              });
+              const data = await response.json();
+              if (data.success) {
+                alert('質問が削除されました。');
+                await this.fetchOrderedQuestions();
+              } else {
+                alert('質問の削除に失敗しました。');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+            }
+          }
         }
+      },
+      mounted() {
+        this.fetchOrderedQuestions();
       }
     }).mount('#app');
-
-
   </script>
 </body>
 </html>
