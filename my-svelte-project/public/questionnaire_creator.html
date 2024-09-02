@@ -28,13 +28,21 @@
     </div>
 
     <button @click="addQuestion">質問を追加</button>
-    <button @click="submitQuestions">アンケートを保存</button>
+    <button @click="submitSurvey">アンケートを保存</button>
 
-    <h2>発注した質問一覧</h2>
-    <ul>
-      <li v-for="question in orderedQuestions" :key="question.id">
-        {{ question.question_text }}
-        <button @click="deleteQuestion(question.id)">削除</button>
+    <h2>作成したアンケート一覧</h2>
+      <li v-for="survey in surveys" :key="survey.survey_id">
+        <h4>{{ survey.title }}</h4>
+        <p>{{ survey.description }}</p>
+        <!-- <button @click="fetchSurveyQuestions(survey.survey_id)">質問を表示</button> -->
+        <ul>
+          <li v-for="question in survey.questions" :key="question.question_id">
+          <h4>{{ question.question_text }}</h4>
+          <button @click="deleteQuestion(question.question_id)">削除</button>
+          </li>
+        </ul>
+    
+        <button @click="deleteSurvey(survey.survey_id)">削除</button>
       </li>
     </ul>
   </div>
@@ -44,11 +52,12 @@
       data() {
         return {
           questions: [{ text: '', selectedAnswer: null }],
-          orderedQuestions: [],
+          surveys: [],
+          currentSurveyQuestions: [],
           surveyTitle: '',
           surveyDescription: '',
           surveyPrice: 0,
-          requesterUid: 'user2_uid', // サンプルUID
+          requesterUid: 'user1_uid', // サンプルUID
           endpoint: 'http://localhost:8000' // 追加されたエンドポイント
         }
       },
@@ -56,15 +65,14 @@
         addQuestion() {
           this.questions.push({ text: '', selectedAnswer: null });
         },
-        async submitQuestions() {
+        async submitSurvey() {
           const validQuestions = this.questions.filter(q => q.text.length > 0 && q.selectedAnswer !== null);
           if (validQuestions.length > 0) {
             const surveyData = {
               uid: this.requesterUid,
               title: this.surveyTitle,
               description: this.surveyDescription,
-              price: this.surveyPrice,
-              questions: validQuestions
+              price: this.surveyPrice
             };
 
             try {
@@ -79,6 +87,7 @@
               if (data.id) {
                 alert('アンケートが保存されました！');
                 await this.saveQuestions(data.id, validQuestions);
+                await this.fetchSurveys(); // アンケート一覧を再取得
               } else {
                 alert('アンケートの保存に失敗しました。');
               }
@@ -92,7 +101,7 @@
         async saveQuestions(surveyId, questions) {
           for (const question of questions) {
             try {
-              const response = await fetch(`${this.endpoint}/survey/${surveyId}/add-question`, {
+              const response = await fetch(`${this.endpoint}/survey/${surveyId}/update`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -103,19 +112,17 @@
                 })
               });
               const data = await response.json();
-              if (!data.id) {
+              if (!data.success) {
                 alert('質問の保存に失敗しました。');
-              } else {
-                await this.fetchOrderedQuestions();
               }
             } catch (error) {
               console.error('Error:', error);
             }
           }
         },
-        async fetchOrderedQuestions() {
+        async fetchSurveys() {
           try {
-            const response = await fetch(`${this.endpoint}/survey/read`, {
+            const response = await fetch(`${this.endpoint}/survey/read-by-requester`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -123,15 +130,52 @@
               body: JSON.stringify({ uid: this.requesterUid })
             });
             const data = await response.json();
-            this.orderedQuestions = data.surveys.flatMap(survey => survey.questions);
+            this.surveys = data.surveys;
           } catch (error) {
             console.error('Error:', error);
+          }
+        },
+        async fetchSurveyQuestions(surveyId) {
+          try {
+            const response = await fetch(`${this.endpoint}/survey/${surveyId}/read`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+            const data = await response.json();
+            this.currentSurveyQuestions = data.questions;
+          } catch (error) {
+            console.error('Error:', error);
+          }
+        },
+        async deleteSurvey(surveyId) {
+
+          if (confirm('本当にこのアンケートを削除しますか？')) {
+            try {
+              const response = await fetch(`${this.endpoint}/survey/delete`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ uid: this.requesterUid, survey_id: surveyId })
+              });
+              const data = await response.json();
+              if (data.success) {
+                alert('アンケートが削除されました。');
+                await this.fetchSurveys(); // アンケート一覧を再取得
+              } else {
+                alert('アンケートの削除に失敗しました。');
+              }
+            } catch (error) {
+              console.error('Error:', error);
+            }
           }
         },
         async deleteQuestion(questionId) {
           if (confirm('本当にこの質問を削除しますか？')) {
             try {
-              const response = await fetch(`${this.endpoint}/survey/${questionId}/delete-question`, {
+              const response = await fetch(`${this.endpoint}/survey/${questionId}/delete`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -141,7 +185,7 @@
               const data = await response.json();
               if (data.success) {
                 alert('質問が削除されました。');
-                await this.fetchOrderedQuestions();
+                await this.fetchSurveyQuestions(); // 現在のアンケートの質問一覧を再取得
               } else {
                 alert('質問の削除に失敗しました。');
               }
@@ -152,7 +196,7 @@
         }
       },
       mounted() {
-        this.fetchOrderedQuestions();
+        this.fetchSurveys();
       }
     }).mount('#app');
   </script>
