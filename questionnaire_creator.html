@@ -48,7 +48,8 @@
           surveyTitle: '',
           surveyDescription: '',
           surveyPrice: 0,
-          requesterUid: 'requester-uid-sample' // サンプルUID
+          requesterUid: 'user2_uid', // サンプルUID
+          endpoint: 'http://localhost:8000' // 追加されたエンドポイント
         }
       },
       methods: {
@@ -67,7 +68,7 @@
             };
 
             try {
-              const response = await fetch('/survey/create', {
+              const response = await fetch(`${this.endpoint}/survey/create`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -91,7 +92,7 @@
         async saveQuestions(surveyId, questions) {
           for (const question of questions) {
             try {
-              const response = await fetch(`/survey/${surveyId}/add-question`, {
+              const response = await fetch(`${this.endpoint}/survey/${surveyId}/add-question`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'
@@ -114,7 +115,7 @@
         },
         async fetchOrderedQuestions() {
           try {
-            const response = await fetch('/survey/read', {
+            const response = await fetch(`${this.endpoint}/survey/read`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -130,7 +131,7 @@
         async deleteQuestion(questionId) {
           if (confirm('本当にこの質問を削除しますか？')) {
             try {
-              const response = await fetch(`/survey/${questionId}/delete-question`, {
+              const response = await fetch(`${this.endpoint}/survey/${questionId}/delete-question`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json'

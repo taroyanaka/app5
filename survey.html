@@ -5,17 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アンケート回答</title>
   <script src="./vue3.js"></script>
+  <style>
+    .survey-container {
+      margin-bottom: 20px;
+    }
+    .question-container {
+      margin-top: 10px;
+    }
+  </style>
 </head>
 <body>
   <div id="app">
+    <pre>{{ dump }}</pre> <!-- Display raw data -->
+    <!-- fetchSurvey -->
+    <button @click="fetchSurvey">fetchSurvey</button>
     <h1>アンケート回答</h1>
-    <div v-for="(question, index) in questions" :key="index" class="question-container">
-      <p>{{ question.text }}</p>
-      <div>
-        <label v-for="n in 5" :key="n">
-          <input type="radio" :name="'answer' + index" :value="n" v-model="answers[index]">
-          {{ n }}
-        </label>
+    <div v-for="(survey, index) in surveys" :key="index" class="survey-container">
+      <h2>{{ survey.title }}</h2>
+      <p>{{ survey.description }}</p>
+      <p>価格: {{ survey.price }}円</p>
+      <p>作成日: {{ survey.created_at }}</p>
+      <div v-for="(question, qIndex) in survey.questions" :key="qIndex" class="question-container">
+        <p>{{ question.text }}</p>
+        <div>
+          <label v-for="n in 5" :key="n">
+            <input type="radio" :name="'answer' + question.id" :value="n" v-model="answers[question.id]">
+            {{ n }}
+          </label>
+        </div>
       </div>
     </div>
     <button @click="submitAnswers">回答を送信</button>
@@ -25,15 +42,17 @@
     const app = Vue.createApp({
       data() {
         return {
-          questions: [],
-          answers: [],
-          respondentUid: 'respondent-uid-sample' // サンプルUID
+          surveys: [],
+          answers: {}, // Dictionary with question_id as key
+          respondentUid: 'user2_uid', // サンプルUID
+          endpoint: 'http://localhost:8000',
+          dump: null
         }
       },
       methods: {
         async fetchSurvey() {
           try {
-            const response = await fetch('/survey/read', {
+            const response = await fetch(`${this.endpoint}/survey/read`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json'
@@ -41,9 +60,27 @@
               body: JSON.stringify({ uid: this.respondentUid })
             });
             const data = await response.json();
-            if (data.surveys && data.surveys.length > 0) {
-              this.questions = data.surveys.map(survey => survey.questions).flat();
-              this.answers = new Array(this.questions.length).fill(null);
+            if (data && data.surveys) {
+              this.dump = data; // Display raw data
+              // Transform data into surveys with questions
+              const surveys = {};
+              data.surveys.forEach(item => {
+                if (!surveys[item.survey_id]) {
+                  surveys[item.survey_id] = {
+                    id: item.survey_id,
+                    title: item.title,
+                    description: item.description,
+                    price: item.price,
+                    created_at: item.created_at,
+                    questions: []
+                  };
+                }
+                surveys[item.survey_id].questions.push({
+                  id: item.question_id,
+                  text: item.question_text
+                });
+              });
+              this.surveys = Object.values(surveys);
             } else {
               alert('アンケートが見つかりません。');
             }
@@ -54,10 +91,9 @@
         },
         async submitAnswers() {
           try {
-            for (const [index, answer] of this.answers.entries()) {
+            for (const [questionId, answer] of Object.entries(this.answers)) {
               if (answer !== null) {
-                const questionId = this.questions[index].id;
-                const response = await fetch(`/survey/${questionId}/respond`, {
+                const response = await fetch(`${this.endpoint}/survey/${questionId}/respond`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json'
