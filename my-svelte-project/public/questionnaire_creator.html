@@ -16,32 +16,31 @@
 <body>
   <div id="app">
     <h1>アンケート作成</h1>
+    <!-- surveyTitle -->
+    <input type="text" v-model="surveyTitle" placeholder="アンケートのタイトルを入力 (1〜100文字)" maxlength="100" minlength="1">
+    <p>必須</p>
+    <!-- surveyDescription 必須ではない -->
+    <input type="text" v-model="surveyDescription" placeholder="アンケートの説明を入力 (1〜100文字)" maxlength="100">
+    <p>必須ではない</p>
 
     <div v-for="(question, index) in questions" :key="index" class="question-container">
       <input type="text" v-model="question.text" placeholder="質問を入力 (1〜100文字)" maxlength="100">
-      <div>
-        <label v-for="n in 5" :key="n">
-          <input type="radio" :name="'answer' + index" :value="n" v-model="question.selectedAnswer">
-          {{ n }}
-        </label>
-      </div>
     </div>
 
     <button @click="addQuestion">質問を追加</button>
     <button @click="submitSurvey">アンケートを保存</button>
 
     <h2>作成したアンケート一覧</h2>
+    <ul>
       <li v-for="survey in surveys" :key="survey.survey_id">
         <h4>{{ survey.title }}</h4>
         <p>{{ survey.description }}</p>
-        <!-- <button @click="fetchSurveyQuestions(survey.survey_id)">質問を表示</button> -->
         <ul>
           <li v-for="question in survey.questions" :key="question.question_id">
-          <h4>{{ question.question_text }}</h4>
-          <button @click="deleteQuestion(question.question_id)">削除</button>
+            <h4>{{ question.question_text }}</h4>
+            <button @click="deleteQuestion(question.question_id)">削除</button>
           </li>
         </ul>
-    
         <button @click="deleteSurvey(survey.survey_id)">削除</button>
       </li>
     </ul>
@@ -51,9 +50,8 @@
     const app = Vue.createApp({
       data() {
         return {
-          questions: [{ text: '', selectedAnswer: null }],
+          questions: [{ text: '', selectedAnswer: 3 }],
           surveys: [],
-          currentSurveyQuestions: [],
           surveyTitle: '',
           surveyDescription: '',
           surveyPrice: 0,
@@ -63,16 +61,17 @@
       },
       methods: {
         addQuestion() {
-          this.questions.push({ text: '', selectedAnswer: null });
+          this.questions.push({ text: '', selectedAnswer: 3 });
         },
         async submitSurvey() {
-          const validQuestions = this.questions.filter(q => q.text.length > 0 && q.selectedAnswer !== null);
+          const validQuestions = this.questions.filter(q => q.text.length > 0);
           if (validQuestions.length > 0) {
             const surveyData = {
               uid: this.requesterUid,
               title: this.surveyTitle,
               description: this.surveyDescription,
-              price: this.surveyPrice
+              price: this.surveyPrice,
+              validQuestions: JSON.parse(JSON.stringify(validQuestions)),
             };
 
             try {
@@ -95,7 +94,7 @@
               console.error('Error:', error);
             }
           } else {
-            alert('少なくとも1つの有効な質問と回答が必要です。');
+            alert('少なくとも1つの有効な質問が必要です。');
           }
         },
         async saveQuestions(surveyId, questions) {
@@ -135,22 +134,7 @@
             console.error('Error:', error);
           }
         },
-        async fetchSurveyQuestions(surveyId) {
-          try {
-            const response = await fetch(`${this.endpoint}/survey/${surveyId}/read`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
-            const data = await response.json();
-            this.currentSurveyQuestions = data.questions;
-          } catch (error) {
-            console.error('Error:', error);
-          }
-        },
         async deleteSurvey(surveyId) {
-
           if (confirm('本当にこのアンケートを削除しますか？')) {
             try {
               const response = await fetch(`${this.endpoint}/survey/delete`, {
