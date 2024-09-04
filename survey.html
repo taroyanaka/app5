@@ -5,37 +5,48 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>アンケート回答</title>
   <script src="./vue3.js"></script>
-  <style>
-    .survey-container {
-      margin-bottom: 20px;
-    }
-    .question-container {
-      margin-top: 10px;
-    }
-  </style>
 </head>
 <body>
   <div id="app">
-    <pre>{{ dump }}</pre> <!-- Display raw data -->
-    <!-- fetchSurvey -->
-    <button @click="fetchSurvey">fetchSurvey</button>
+    <!-- 回答済みアンケート一覧(タイトルのみ表示) -->
+     <!-- v-if -->
+      <div v-if="done_survery.length > 0">
+        <h2>回答済みアンケート</h2>
+        <ul>
+          <li v-for="survey in done_survery" :key="survey.id">
+            <h4>{{ survey.title }}</h4>
+          </li>
+        </ul>
+      </div>
+
+
+    <div v-if="currentSurvey === null && surveys.length === 0">
+      <p>回答するアンケートがありません。</p>
+    </div>
+
     <h1>アンケート回答</h1>
-    <div v-for="(survey, index) in surveys" :key="index" class="survey-container">
-      <h2>{{ survey.title }}</h2>
-      <p>{{ survey.description }}</p>
-      <p>価格: {{ survey.price }}円</p>
-      <p>作成日: {{ survey.created_at }}</p>
-      <div v-for="(question, qIndex) in survey.questions" :key="qIndex" class="question-container">
-        <p>{{ question.text }}</p>
+    <div v-if="currentSurvey === null">
+      <div v-for="survey in surveys" :key="survey.id" class="survey-container">
+        <h2>{{ survey.title }}</h2>
+        <p>{{ survey.description }}</p>
+        <button @click="startSurvey(survey.id)">開始</button>
+      </div>
+    </div>
+    <div v-else>
+      <div v-if="currentQuestionIndex < currentSurvey.questions.length" class="question-container">
+        <h3>{{ currentSurvey.questions[currentQuestionIndex].question_text }}</h3>
         <div>
           <label v-for="n in 5" :key="n">
-            <input type="radio" :name="'answer' + question.id" :value="n" v-model="answers[question.id]">
+            <input type="radio" :value="n" v-model="answers[currentSurvey.questions[currentQuestionIndex].id]" />
             {{ n }}
           </label>
         </div>
+        <button @click="nextQuestion">次へ</button>
+      </div>
+      <div v-else>
+        <button @click="submitSurvey">送信</button>
       </div>
     </div>
-    <button @click="submitAnswers">回答を送信</button>
   </div>
 
   <script>
@@ -45,24 +56,38 @@
           surveys: [],
           answers: {}, // Dictionary with question_id as key
           respondentUid: 'user2_uid', // サンプルUID
-          endpoint: 'http://localhost:8000',
-          dump: null
+          endpoint: 'http://localhost:8000', // エンドポイントを追加
+          currentSurvey: null,
+          currentQuestionIndex: 0,
+          done_survery: [],
         }
       },
       methods: {
-        async fetchSurvey() {
-          try {
-            const response = await fetch(`${this.endpoint}/survey/read`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ uid: this.respondentUid })
-            });
-            const data = await response.json();
-            if (data && data.surveys) {
-              this.dump = data; // Display raw data
-              // Transform data into surveys with questions
+        fetchSurvey() {
+          fetch(`${this.endpoint}/survey/read`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ uid: this.respondentUid })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.surveys && data.surveys.length > 0) {
+              //         const completedSurvey = db.prepare('SELECT * FROM survey_completed WHERE user_id = ?').get(user.id);
+        // if (completedSurvey) {
+        //     surveys = surveys.filter(survey => survey.survey_id !== completedSurvey.survey_id);
+        // }
+
+        // res.status(200).json({ surveys, completedSurvey });
+        // const completedSurvey = {};
+      if(data.done_survery){
+          data.done_survery.forEach(item => {
+            console.log(item)
+          });
+          this.done_survery = data.done_survery;
+      }
+      // this.completedSurvey = completedSurvey;
               const surveys = {};
               data.surveys.forEach(item => {
                 if (!surveys[item.survey_id]) {
@@ -77,40 +102,56 @@
                 }
                 surveys[item.survey_id].questions.push({
                   id: item.question_id,
-                  text: item.question_text
+                  question_text: item.question_text
                 });
               });
               this.surveys = Object.values(surveys);
-            } else {
-              alert('アンケートが見つかりません。');
             }
-          } catch (error) {
-            console.error('アンケートの取得エラー:', error);
-            alert('アンケートの取得に失敗しました。');
+          })
+          .catch(error => {
+            console.error('Error fetching surveys:', error);
+          });
+        },
+        startSurvey(surveyId) {
+          this.currentSurvey = this.surveys.find(survey => survey.id === surveyId);
+          this.currentQuestionIndex = 0;
+        },
+        nextQuestion() {
+          if (this.currentQuestionIndex < this.currentSurvey.questions.length - 1) {
+            this.currentQuestionIndex++;
+          } else {
+            this.currentQuestionIndex++;
           }
         },
-        async submitAnswers() {
+        async submitSurvey() {
           try {
-            for (const [questionId, answer] of Object.entries(this.answers)) {
-              if (answer !== null) {
-                const response = await fetch(`${this.endpoint}/survey/${questionId}/respond`, {
+            for (let i = 0; i < this.currentSurvey.questions.length; i++) {
+              const question = this.currentSurvey.questions[i];
+              const responseValue = this.answers[question.id];
+
+              if (responseValue !== null) {
+                const response = await fetch(`${this.endpoint}/survey/${question.id}/respond`, {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json'
                   },
                   body: JSON.stringify({
                     uid: this.respondentUid,
-                    response_value: answer
+                    response_value: responseValue
                   })
                 });
                 const data = await response.json();
-                console.log('回答が送信されました:', data);
+                if (!response.ok) {
+                  throw new Error(data.error || 'Failed to submit response');
+                }
               }
             }
-            alert('回答が送信されました。ありがとうございます！');
+            alert('アンケートが送信されました。');
+            this.currentSurvey = null;
+            this.answers = {};
           } catch (error) {
-            console.error('送信エラー:', error);
-            alert('回答の送信に失敗しました。もう一度お試しください。');
+            console.error('Error submitting survey:', error);
+            alert('アンケートの送信中にエラーが発生しました。');
           }
         }
       },

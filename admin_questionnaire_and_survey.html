@@ -9,10 +9,8 @@
 <body>
   <div id="app">
     <h1>アンケート回答一覧</h1>
-    <button @click="fetchResponses">取得fetchResponses</button>
     <button @click="initDatabase">データベース初期化</button>
-    <button @click="initDatabase2">データベース初期化2</button>
-    <button @click="initDatabase3">データベース初期化3</button>
+    <button @click="fetchBalances">残高を取得</button>
     <div v-if="loading">読み込み中...</div>
     <div v-else>
       <div v-if="error" class="error">{{ error }}</div>
@@ -41,6 +39,21 @@
             </tr>
           </tbody>
         </table>
+        <h2>ユーザー残高一覧</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>ユーザーUID</th>
+              <th>残高</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="balance in balances" :key="balance.uid">
+              <td>{{ balance.uid }}</td>
+              <td>{{ balance.balance }}</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -50,6 +63,7 @@
       data() {
         return {
           responses: [],
+          balances: [],
           loading: true,
           error: null,
           adminUid: 'user3_uid', // サンプルUID
@@ -79,6 +93,25 @@
             this.loading = false;
           }
         },
+        async fetchBalances() {
+          try {
+            const response = await fetch(`${this.endpoint}/all_balance`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ uid: this.adminUid })
+            });
+            const data = await response.json();
+            if (response.ok) {
+              this.balances = data.balances;
+            } else {
+              this.error = data.error || '残高の取得に失敗しました。';
+            }
+          } catch (error) {
+            this.error = '残高の取得中にエラーが発生しました。';
+          }
+        },
         async initDatabase() {
           try {
             const response = await fetch(`${this.endpoint}/survey/init-database`, {
@@ -98,50 +131,10 @@
           } catch (error) {
             this.error = 'データベースの初期化中にエラーが発生しました。';
           }
-        },
-        async initDatabase2() {
-          try {
-            const response = await fetch(`${this.endpoint}/survey/init-database2`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ password: this.initPassword })
-            });
-            const data = await response.json();
-            if (response.ok) {
-              alert('データベースが初期化されました。');
-              this.fetchResponses(); // 初期化後にデータを再取得
-            } else {
-              this.error = data.error || 'データベースの初期化に失敗しました。';
-            }
-          } catch (error) {
-            this.error = 'データベースの初期化中にエラーが発生しました。';
-          }
-        },
-        async initDatabase3() {
-          try {
-            const response = await fetch(`${this.endpoint}/survey/init-database3`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ password: this.initPassword })
-            });
-            const data = await response.json();
-            if (response.ok) {
-              alert('データベースが初期化されました。');
-              this.fetchResponses(); // 初期化後にデータを再取得
-            } else {
-              this.error = data.error || 'データベースの初期化に失敗しました。';
-            }
-          } catch (error) {
-            this.error = 'データベースの初期化中にエラーが発生しました。';
-          }
-        },
+        }
       },
       mounted() {
-        // this.fetchResponses();
+        this.fetchResponses();
       }
     }).mount('#app');
   </script>
