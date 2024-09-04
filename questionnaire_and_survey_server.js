@@ -122,9 +122,31 @@ app.post('/survey/init-database', (req, res) => {
 
 
 app.post('/survey/create', (req, res) => {
-    const { uid, title, description, price } = req.body;
+    const { uid, title, description, price, validQuestions } = req.body;
+    if (!uid || typeof title !== 'string' || title.length < 1 || title.length > 100
+        || validQuestions.length === 0 || validQuestions.some(question => !question.text || question.text.length === 0 || !question.selectedAnswer
+            //  || question.selectedAnswer < 1 || question.selectedAnswer > 5
+            )
+    ) {
+        console.log({uid, title, description, price, validQuestions});
+        // エラーごとにconsole.logを追加
+        if(!uid) console.log('uid is missing');
+        if(typeof title !== 'string') console.log('title is not a string');
+        if(title.length <= 1) console.log('title is too short');
+        if(title.length > 100) console.log('title is too long');
+        if(validQuestions.length === 0) console.log('validQuestions is empty');
+        if(validQuestions.some(question => !question.text)) console.log('question.text is missing');
+        if(validQuestions.some(question => question.text.length === 0)) console.log('question.text is empty');
+        if(validQuestions.some(question => !question.selectedAnswer)) console.log('selectedAnswer is missing');
+        // selectedAnswerは全て3
 
-    if (!uid || typeof title !== 'string' || title.length < 1 || title.length > 100) {
+
+        // if(validQuestions.some(question => question.selectedAnswer < 1)) console.log('selectedAnswer is too small');
+        // if(validQuestions.some(question => question.selectedAnswer > 5)) console.log('selectedAnswer is too large');
+
+
+      
+
         return res.status(400).json({ error: 'Invalid input.' });
     }
 
@@ -137,6 +159,14 @@ app.post('/survey/create', (req, res) => {
 
     const stmt = db.prepare('INSERT INTO surveys (title, description, price, requester_id) VALUES (?, ?, ?, ?)');
     const result = stmt.run(title, description || null, price, requester.id);
+    // questionsをvalidQuestionsから取得して、それをquestionsテーブルにinsertする
+    const surveyId = result.lastInsertRowid;
+    validQuestions.forEach(question => {
+        // selectedAnswerは全て3
+        question.selectedAnswer = 3;
+        const stmt2 = db.prepare('INSERT INTO questions (survey_id, question_text) VALUES (?, ?)');
+        stmt2.run(surveyId, question.text);
+    });
 
     return res.status(201).json({
         id: result.lastInsertRowid,
@@ -147,30 +177,31 @@ app.post('/survey/create', (req, res) => {
     });
 });
 
-app.post('/survey/:surveyId/add-question', (req, res) => {
-    const { uid, question_text } = req.body;
-    const { surveyId } = req.params;
+// add-questionは不要
+// app.post('/survey/:surveyId/add-question', (req, res) => {
+//     const { uid, question_text } = req.body;
+//     const { surveyId } = req.params;
 
-    if (!uid || typeof question_text !== 'string' || question_text.length < 1 || question_text.length > 255) {
-        return res.status(400).json({ error: 'Invalid input.' });
-    }
+//     if (!uid || typeof question_text !== 'string' || question_text.length < 1 || question_text.length > 255) {
+//         return res.status(400).json({ error: 'Invalid input.' });
+//     }
 
-    const hashedUid = crypto.createHash('sha256').update(uid).digest('hex');
-    const requester = db.prepare('SELECT s.id FROM surveys s JOIN users u ON s.requester_id = u.id WHERE u.uid = ? AND s.id = ? AND u.role = ?').get(hashing === true ?hashedUid:uid, surveyId, 'requester');
+//     const hashedUid = crypto.createHash('sha256').update(uid).digest('hex');
+//     const requester = db.prepare('SELECT s.id FROM surveys s JOIN users u ON s.requester_id = u.id WHERE u.uid = ? AND s.id = ? AND u.role = ?').get(hashing === true ?hashedUid:uid, surveyId, 'requester');
 
-    if (!requester) {
-        return res.status(403).json({ error: 'Unauthorized: Invalid requester UID or survey not found.' });
-    }
+//     if (!requester) {
+//         return res.status(403).json({ error: 'Unauthorized: Invalid requester UID or survey not found.' });
+//     }
 
-    const stmt = db.prepare('INSERT INTO questions (survey_id, question_text) VALUES (?, ?)');
-    const result = stmt.run(surveyId, question_text);
+//     const stmt = db.prepare('INSERT INTO questions (survey_id, question_text) VALUES (?, ?)');
+//     const result = stmt.run(surveyId, question_text);
 
-    return res.status(201).json({
-        id: result.lastInsertRowid,
-        survey_id: surveyId,
-        question_text
-    });
-});
+//     return res.status(201).json({
+//         id: result.lastInsertRowid,
+//         survey_id: surveyId,
+//         question_text
+//     });
+// });
 
 app.post('/survey/read', (req, res) => {
     const { uid } = req.body;
