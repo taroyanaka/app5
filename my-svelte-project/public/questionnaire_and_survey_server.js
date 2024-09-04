@@ -18,91 +18,194 @@ app.listen(port, "0.0.0.0", () => {
 const db = new sqlite('survey.db');
 
 const initializeDatabase = () => {
-    db.exec(`
--- 既存のテーブルを削除
-DROP TABLE IF EXISTS survey_access;
-DROP TABLE IF EXISTS responses;
-DROP TABLE IF EXISTS questions;
-DROP TABLE IF EXISTS surveys;
-DROP TABLE IF EXISTS users;
-
--- 1. users テーブルを作成
-CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uid TEXT NOT NULL UNIQUE, -- ユーザー識別子（ユニーク）
-    role TEXT NOT NULL CHECK(role IN ('requester', 'respondent', 'admin')) -- ユーザーの種類を指定
-);
-
--- 2. surveys テーブルを作成
-CREATE TABLE surveys (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL, -- アンケートの題名
-    description TEXT, -- アンケートの説明
-    price REAL NOT NULL, -- アンケート実施にかかる価格
-    requester_id INTEGER NOT NULL, -- 発注者
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (requester_id) REFERENCES users(id) -- 発注者とのリレーション
-);
-
--- 3. questions テーブルを作成
-CREATE TABLE questions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    survey_id INTEGER NOT NULL, -- 所属するアンケート
-    question_text TEXT NOT NULL, -- 質問内容
-    FOREIGN KEY (survey_id) REFERENCES surveys(id) -- アンケートとのリレーション
-);
-
--- 4. responses テーブルを作成
-CREATE TABLE responses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    question_id INTEGER NOT NULL, -- 回答する質問
-    respondent_id INTEGER NOT NULL, -- 回答者
-    response_value INTEGER NOT NULL CHECK(response_value BETWEEN 1 AND 5), -- 回答（1から5の範囲）
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (question_id) REFERENCES questions(id), -- 質問とのリレーション
-    FOREIGN KEY (respondent_id) REFERENCES users(id) -- 回答者とのリレーション
-);
-
--- 5. survey_access テーブルを作成
-CREATE TABLE survey_access (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    survey_id INTEGER NOT NULL, -- アンケートのまとまり
-    user_id INTEGER NOT NULL, -- 閲覧権限を持つユーザー
-    FOREIGN KEY (survey_id) REFERENCES surveys(id), -- アンケートとのリレーション
-    FOREIGN KEY (user_id) REFERENCES users(id) -- ユーザーとのリレーション
-);
-
--- サンプルデータの挿入
--- 1. users テーブルにサンプルデータを挿入
-INSERT INTO users (uid, role) VALUES ('user1_uid', 'requester');
-INSERT INTO users (uid, role) VALUES ('user2_uid', 'respondent');
-INSERT INTO users (uid, role) VALUES ('user3_uid', 'admin');
-INSERT INTO users (uid, role) VALUES ('user4_uid', 'respondent');
-
--- 2. surveys テーブルにサンプルデータを挿入
-INSERT INTO surveys (title, description, price, requester_id) VALUES ('Customer Satisfaction Survey', 'A survey to measure customer satisfaction.', 100.00, 1);
-INSERT INTO surveys (title, description, price, requester_id) VALUES ('Employee Engagement Survey', 'A survey to gauge employee engagement.', 200.00, 1);
-
--- 3. questions テーブルにサンプルデータを挿入
-INSERT INTO questions (survey_id, question_text) VALUES (1, 'How satisfied are you with our service?');
-INSERT INTO questions (survey_id, question_text) VALUES (1, 'How likely are you to recommend us to a friend?');
-INSERT INTO questions (survey_id, question_text) VALUES (2, 'How engaged do you feel at work?');
-INSERT INTO questions (survey_id, question_text) VALUES (2, 'How satisfied are you with your current role?');
-
--- 4. responses テーブルにサンプルデータを挿入
-INSERT INTO responses (question_id, respondent_id, response_value) VALUES (1, 2, 4); -- user2が質問1に回答
-INSERT INTO responses (question_id, respondent_id, response_value) VALUES (2, 2, 5); -- user2が質問2に回答
-INSERT INTO responses (question_id, respondent_id, response_value) VALUES (3, 4, 3); -- user4が質問3に回答
-INSERT INTO responses (question_id, respondent_id, response_value) VALUES (4, 4, 2); -- user4が質問4に回答
-
--- 5. survey_access テーブルにサンプルデータを挿入
-INSERT INTO survey_access (survey_id, user_id) VALUES (1, 1); -- user1がアンケート1にアクセス可能
-INSERT INTO survey_access (survey_id, user_id) VALUES (1, 3); -- user3がアンケート1にアクセス可能（管理者）
-INSERT INTO survey_access (survey_id, user_id) VALUES (2, 1); -- user1がアンケート2にアクセス可能
-INSERT INTO survey_access (survey_id, user_id) VALUES (2, 3); -- user3がアンケート2にアクセス可能（管理者）
-    `);
+    try {
+        // 既存のテーブルを削除
+        db.exec("DROP TABLE IF EXISTS survey_access;");
+        db.exec("DROP TABLE IF EXISTS responses;");
+        db.exec("DROP TABLE IF EXISTS questions;");
+        db.exec("DROP TABLE IF EXISTS surveys;");
+        db.exec("DROP TABLE IF EXISTS survey_completed;");
+        db.exec("DROP TABLE IF EXISTS users;");
+        db.exec("DROP TABLE IF EXISTS balance;");
+    } catch (error) {
+        console.error("Error dropping existing tables:", error);
+    }
+    
+    try {
+        // 1. users テーブルを作成
+        db.exec(`
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid TEXT NOT NULL UNIQUE, 
+                role TEXT NOT NULL CHECK(role IN ('requester', 'respondent', 'admin'))
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating users table:", error);
+    }
+    
+    try {
+        // balanceを管理するテーブルを作成
+        db.exec(`
+            CREATE TABLE balance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL, 
+                balance REAL NOT NULL, 
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating balance table:", error);
+    }
+    
+    try {
+        // 2. surveys テーブルを作成
+        db.exec(`
+            CREATE TABLE surveys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                title TEXT NOT NULL, 
+                description TEXT, 
+                price REAL NOT NULL, 
+                requester_id INTEGER NOT NULL, 
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (requester_id) REFERENCES users(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating surveys table:", error);
+    }
+    
+    try {
+        // 3. questions テーブルを作成
+        db.exec(`
+            CREATE TABLE questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                survey_id INTEGER NOT NULL, 
+                question_text TEXT NOT NULL, 
+                FOREIGN KEY (survey_id) REFERENCES surveys(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating questions table:", error);
+    }
+    
+    try {
+        // 4. responses テーブルを作成
+        db.exec(`
+            CREATE TABLE responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                question_id INTEGER NOT NULL, 
+                respondent_id INTEGER NOT NULL, 
+                response_value INTEGER NOT NULL CHECK(response_value BETWEEN 1 AND 5), 
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (question_id) REFERENCES questions(id),
+                FOREIGN KEY (respondent_id) REFERENCES users(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating responses table:", error);
+    }
+    
+    try {
+        // 5. survey_access テーブルを作成
+        db.exec(`
+            CREATE TABLE survey_access (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                survey_id INTEGER NOT NULL, 
+                user_id INTEGER NOT NULL, 
+                FOREIGN KEY (survey_id) REFERENCES surveys(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating survey_access table:", error);
+    }
+    
+    try {
+        // survey_completed テーブルを作成
+        db.exec(`
+            CREATE TABLE survey_completed (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                survey_id INTEGER NOT NULL, 
+                user_id INTEGER NOT NULL, 
+                FOREIGN KEY (survey_id) REFERENCES surveys(id),
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            );
+        `);
+    } catch (error) {
+        console.error("Error creating survey_completed table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - users テーブル
+        db.exec(`
+            INSERT INTO users (uid, role) VALUES ('user1_uid', 'requester');
+            INSERT INTO users (uid, role) VALUES ('user2_uid', 'respondent');
+            INSERT INTO users (uid, role) VALUES ('user3_uid', 'admin');
+            INSERT INTO users (uid, role) VALUES ('user4_uid', 'respondent');
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into users table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - balance テーブル
+        db.exec(`
+            INSERT INTO balance (user_id, balance) VALUES (1, 1000.00); -- user1の残高
+            INSERT INTO balance (user_id, balance) VALUES (2, 0.00); -- user2の残高
+            INSERT INTO balance (user_id, balance) VALUES (3, 0.00); -- user3の残高
+            INSERT INTO balance (user_id, balance) VALUES (4, 0.00); -- user4の残高
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into balance table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - surveys テーブル
+        db.exec(`
+            INSERT INTO surveys (title, description, price, requester_id) VALUES ('Customer Satisfaction Survey', 'A survey to measure customer satisfaction.', 100.00, 1);
+            INSERT INTO surveys (title, description, price, requester_id) VALUES ('Employee Engagement Survey', 'A survey to gauge employee engagement.', 200.00, 1);
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into surveys table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - questions テーブル
+        db.exec(`
+            INSERT INTO questions (survey_id, question_text) VALUES (1, 'How satisfied are you with our service?');
+            INSERT INTO questions (survey_id, question_text) VALUES (1, 'How likely are you to recommend us to a friend?');
+            INSERT INTO questions (survey_id, question_text) VALUES (2, 'How engaged do you feel at work?');
+            INSERT INTO questions (survey_id, question_text) VALUES (2, 'How satisfied are you with your current role?');
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into questions table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - responses テーブル
+        db.exec(`
+            INSERT INTO responses (question_id, respondent_id, response_value) VALUES (1, 2, 4);
+            INSERT INTO responses (question_id, respondent_id, response_value) VALUES (2, 2, 5);
+            INSERT INTO responses (question_id, respondent_id, response_value) VALUES (3, 4, 3);
+            INSERT INTO responses (question_id, respondent_id, response_value) VALUES (4, 4, 2);
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into responses table:", error);
+    }
+    
+    try {
+        // サンプルデータの挿入 - survey_access テーブル
+        db.exec(`
+            INSERT INTO survey_access (survey_id, user_id) VALUES (1, 1);
+            INSERT INTO survey_access (survey_id, user_id) VALUES (1, 3);
+            INSERT INTO survey_access (survey_id, user_id) VALUES (2, 1);
+            INSERT INTO survey_access (survey_id, user_id) VALUES (2, 3);
+        `);
+    } catch (error) {
+        console.error("Error inserting sample data into survey_access table:", error);
+    }
 };
-
 
 
 app.post('/survey/init-database', (req, res) => {
@@ -221,7 +324,49 @@ app.post('/survey/read', (req, res) => {
             JOIN questions q ON s.id = q.survey_id
         `).all();
 
-        res.status(200).json({ surveys });
+        // survey_completedテーブルに、uidが存在するかどうかを確認する
+        // 存在する場合は、surveysからそのuidのアンケートを取り除く
+        const completedSurvey = db.prepare('SELECT * FROM survey_completed WHERE user_id = ?').all(user.id);
+        // completedSurveyからdone_surveryを作成
+        let done_survery = [];
+        done_survery = completedSurvey.map(completed => {
+            return surveys.find(survey => survey.survey_id === completed.survey_id);
+        }
+        );
+        // done_surveryからtitileだけを取り出して同じものがあれば削除して集約
+        done_survery = done_survery.reduce((acc, current) => {
+            const x = acc.find(item => item.title === current.title);
+            if (!x) {
+              return acc.concat([current]);
+            } else {
+              return acc;
+            }
+          }
+            , []);
+
+        // completedSurveyは、[
+//   { id: 1, survey_id: 1, user_id: 2 },
+//   { id: 2, survey_id: 1, user_id: 2 }
+// ]
+// のような形式
+
+if(completedSurvey.length > 0){
+    surveys.forEach((survey, index) => {
+        completedSurvey.forEach(completed => {
+            if(survey.survey_id === completed.survey_id){
+                surveys.splice(index, 1);
+            }
+        });
+    });
+
+}
+
+
+        // console.log(completedSurvey);
+
+        res.status(200).json({ surveys
+            , done_survery
+         });
     } catch (error) {
         res.status(500).json({ error: 'Failed to retrieve surveys.' });
     }
@@ -296,6 +441,24 @@ app.post('/survey/:questionId/respond', (req, res) => {
 
     const stmt = db.prepare('INSERT INTO responses (question_id, respondent_id, response_value) VALUES (?, ?, ?)');
     const result = stmt.run(questionId, respondent.id, response_value);
+
+    // survey_completedに、uidとsurvey_idをinsertする
+    const surveyId = db.prepare('SELECT survey_id FROM questions WHERE id = ?').get(questionId).survey_id;
+    db.prepare('INSERT INTO survey_completed (survey_id, user_id) VALUES (?, ?)').run(surveyId, respondent.id);
+
+
+    // ここで、respondentのbalanceを増やし、requesterのbalanceを減らす
+    const requesterId = db.prepare('SELECT requester_id FROM surveys WHERE id = ?').get(surveyId).requester_id;
+    const price = db.prepare('SELECT price FROM surveys WHERE id = ?').get(surveyId).price;
+    const requesterBalance = db.prepare('SELECT balance FROM balance WHERE user_id = ?').get(requesterId).balance;
+    const respondentBalance = db.prepare('SELECT balance FROM balance WHERE user_id = ?').get(respondent.id).balance;
+    db.prepare('UPDATE balance SET balance = ? WHERE user_id = ?').run(requesterBalance - price, requesterId);
+    db.prepare('UPDATE balance SET balance = ? WHERE user_id = ?').run(respondentBalance + price, respondent.id);
+
+
+
+
+
 
     return res.status(201).json({
         id: result.lastInsertRowid,
@@ -415,6 +578,15 @@ app.post('/register', (req, res) => {
     try {
         const stmt = db.prepare('INSERT INTO users (uid, role) VALUES (?, ?)');
         stmt.run(hashing === true ?hashedUid:uid, role);
+        // requesterにはbalanceをANY_FIRST_BALANCE与える
+        const user = db.prepare('SELECT * FROM users WHERE uid = ?').get(hashing === true ?hashedUid:uid);
+        if(user.role === 'requester'){
+            db.prepare('INSERT INTO balance (user_id, balance) VALUES (?, ?)').run(user.id, ANY_FIRST_BALANCE);
+        }
+        // respondentにはbalanceを0与える
+        if(user.role === 'respondent'){
+            db.prepare('INSERT INTO balance (user_id, balance) VALUES (?, ?)').run(user.id, 0);
+        }
 
         res.status(201).json({ message: 'User registered successfully.' });
     } catch (error) {
@@ -425,3 +597,28 @@ app.post('/register', (req, res) => {
         }
     }
 });
+
+
+// admin用のエンドポイント
+// それぞれのユーザーの残高を取得する
+app.post('/all_balance', (req, res) => {
+    const { uid } = req.body;
+
+    const hashedUid = crypto.createHash('sha256').update(uid).digest('hex');
+    const admin = db.prepare('SELECT id FROM users WHERE uid = ? AND role = ?').get(hashing === true ?hashedUid:uid, 'admin');
+
+    if (!admin) {
+        return res.status(403).json({ error: 'Unauthorized: Invalid admin UID.' });
+    }
+
+    const balances = db.prepare(`
+        SELECT u.uid, b.balance
+        FROM balance b
+        JOIN users u ON b.user_id = u.id
+    `).all();
+
+    res.status(200).json({ balances });
+});    
+
+
+

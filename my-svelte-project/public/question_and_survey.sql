@@ -3,6 +3,8 @@ DROP TABLE IF EXISTS survey_access;
 DROP TABLE IF EXISTS responses;
 DROP TABLE IF EXISTS questions;
 DROP TABLE IF EXISTS surveys;
+DROP TABLE IF EXISTS balance;
+DROP TABLE IF EXISTS survey_completed;
 DROP TABLE IF EXISTS users;
 
 -- 1. users テーブルを作成
@@ -10,6 +12,14 @@ CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     uid TEXT NOT NULL UNIQUE, -- ユーザー識別子（ユニーク）
     role TEXT NOT NULL CHECK(role IN ('requester', 'respondent', 'admin')) -- ユーザーの種類を指定
+);
+
+-- balanceを管理するテーブルを作成
+CREATE TABLE balance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL, -- ユーザーID
+    balance REAL NOT NULL, -- ユーザーの残高
+    FOREIGN KEY (user_id) REFERENCES users(id) -- ユーザーとのリレーション
 );
 
 -- 2. surveys テーブルを作成
@@ -51,12 +61,28 @@ CREATE TABLE survey_access (
     FOREIGN KEY (user_id) REFERENCES users(id) -- ユーザーとのリレーション
 );
 
+
+-- 1つのsurveyが完了した際に、そのuidが完了したことを示すためのフラグを持つテーブルを作成
+CREATE TABLE survey_completed (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    survey_id INTEGER NOT NULL, -- 完了したアンケート
+    user_id INTEGER NOT NULL, -- 完了したユーザー
+    FOREIGN KEY (survey_id) REFERENCES surveys(id), -- アンケートとのリレーション
+    FOREIGN KEY (user_id) REFERENCES users(id) -- ユーザーとのリレーション
+);
+
 -- サンプルデータの挿入
 -- 1. users テーブルにサンプルデータを挿入
 INSERT INTO users (uid, role) VALUES ('user1_uid', 'requester');
 INSERT INTO users (uid, role) VALUES ('user2_uid', 'respondent');
 INSERT INTO users (uid, role) VALUES ('user3_uid', 'admin');
 INSERT INTO users (uid, role) VALUES ('user4_uid', 'respondent');
+
+-- 2. balance テーブルにサンプルデータを挿入
+INSERT INTO balance (user_id, balance) VALUES (1, 1000.00); -- user1の残高
+INSERT INTO balance (user_id, balance) VALUES (2, 0.00); -- user2の残高
+INSERT INTO balance (user_id, balance) VALUES (3, 0.00); -- user3の残高
+INSERT INTO balance (user_id, balance) VALUES (4, 0.00); -- user4の残高
 
 -- 2. surveys テーブルにサンプルデータを挿入
 INSERT INTO surveys (title, description, price, requester_id) VALUES ('Customer Satisfaction Survey', 'A survey to measure customer satisfaction.', 100.00, 1);
