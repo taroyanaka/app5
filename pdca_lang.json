@@ -35,5 +35,7 @@
     "sortByStarsDesc": "Sort by Stars Descending",
     "sortByKPIAsc": "Sort by KPI Ascending",
     "sortByKPIDesc": "Sort by KPI Descending",
+    "dueDate": "Due Date",
+    "update": "Update",
     "languageIcon": "🇬🇧"
 }

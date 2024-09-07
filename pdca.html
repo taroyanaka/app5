@@ -123,10 +123,40 @@
                 <button @click="sortPacks('kpi', 'asc')">{{ languageData.sortByKPIAsc }}</button>
                 <button @click="sortPacks('kpi', 'desc')">{{ languageData.sortByKPIDesc }}</button>
             </div>
+
+            <div class="edit-pack" v-if="editPackId" id="edit-pack-id">
+                <h4>{{ languageData.editPack }}</h4>
+                <select v-model="editPackData.projectId">
+                    <option v-for="project in projects" :value="project.id">{{ project.name }}</option>
+                </select>
+
+                <div v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index">
+                    <input v-model="editPackData[stage].description" type="text" :placeholder="languageData[stage]" maxlength="100">
+                    <label>
+                        <input type="checkbox" v-model="editPackData[stage].done"> {{ languageData.done }}
+                    </label>
+
+                    <div class="links">
+                        <div v-for="(link, linkIndex) in editPackData[stage].links" :key="linkIndex">
+                            <input v-model="link.name" type="text" :placeholder="languageData.linkName">
+                            <input v-model="link.href" type="url" :placeholder="languageData.linkHref">
+                            <select v-model="link.stars">
+                                <option v-for="i in 5" :value="i">{{ i }}</option>
+                            </select>
+                            <span class="stars">{{ '★'.repeat(link.stars) }}</span>
+                        </div>
+                        <button @click="addLink(stage)">{{ languageData.addLink }}</button>
+                    </div>                
+                </div>
+                <!-- 期日日時の入力フィールドを追加 -->
+                <input v-model="editPackData.dueDate" type="datetime-local" :placeholder="languageData.dueDate">
+
+                <button @click="updatePack">{{ languageData.update }}</button>
+            </div>
+
             <div class="pack-list">
                 <div v-for="pack in sortedPacks" :key="pack.id" class="pack">
                     <h3>{{ getProjectName(pack.projectId) }}</h3>
-                    abcdefg
                     <div v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done, indent: true }">
                         <!-- doneボタン -->
                         <button @click="done_or_undone(pack,stage)">{{ languageData.done }}</button>
@@ -136,12 +166,11 @@
                             <span class="stars">{{ '★'.repeat(link.stars) }}</span>
                         </div>
                     </div>
-                    <!-- 期日表示 utcフォーマットを　YYYY-MM-DDTHH:MM:SSZ　で表示 -->
-                    <p>Due Date: {{ pack.dueDate }}</p>
+                    <p>{{ languageData.dueDate }}: {{ (() => new Date(pack.dueDate).toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))() }}</p>
+                    <button @click="editPack(pack.id)">edit</button>
                     <button @click="deletePack(pack.id)" class="delete">{{ languageData.delete }}</button>
                 </div>
-            </div>
-        </div>
+                <!-- edit pack用のform一覧 editPackをクリックすると開く updateを押すと該当packがupdateされる -->
 
         <!-- 進捗管理タブ -->
         <div v-if="activeTab === 'progress'">
@@ -185,7 +214,10 @@
                     sortDirection: {
                         projects: 'asc',
                         packs: 'asc'
-                    }
+                    },
+                    editPackId: null,
+                    editPackData: null,
+
                 };
             },
             // mounted
@@ -332,22 +364,35 @@
                 },
                 // パックの完了・未完了を切り替える
                 done_or_undone(pack,stage) {
-// 指定したパックの指定したステージの完了・未完了を切り替える
-pack[stage].done = !pack[stage].done;
-// パックの完了度を計算
-const progress = this.packProgress(pack);
-// パックの完了度が100%になったら、プロジェクトの進捗を更新
-if (progress === 100) {
-    const project = this.projects.find(p => p.id === pack.projectId);
-    project.difficulty = Math.max(1, project.difficulty - 1);
-}
-// パックの完了度が0%になったら、プロジェクトの進捗を更新
-if (progress === 0) {
-    const project = this.projects.find(p => p.id === pack.projectId);
-    project.difficulty = Math.min(5, project.difficulty + 1);
-}
-                    
-
+                    // 指定したパックの指定したステージの完了・未完了を切り替える
+                    pack[stage].done = !pack[stage].done;
+                    // パックの完了度を計算
+                    const progress = this.packProgress(pack);
+                    // パックの完了度が100%になったら、プロジェクトの進捗を更新
+                    if (progress === 100) {
+                        const project = this.projects.find(p => p.id === pack.projectId);
+                        project.difficulty = Math.max(1, project.difficulty - 1);
+                    }
+                    // パックの完了度が0%になったら、プロジェクトの進捗を更新
+                    if (progress === 0) {
+                        const project = this.projects.find(p => p.id === pack.projectId);
+                        project.difficulty = Math.min(5, project.difficulty + 1);
+                    }
+                },
+                editPack(packId) {
+                    // パックのIDを取得
+                    this.editPackId = packId;
+                    // パックの情報を取得
+                    this.editPackData = this.packs.find(pack => pack.id === packId);
+                    // edit-pack-idにスクロール
+                    document.getElementById('edit-pack-id').scrollIntoView();
+                },
+                updatePack() {
+                    // パックの情報を更新
+                    const packIndex = this.packs.findIndex(pack => pack.id === this.editPackId);
+                    this.packs[packIndex] = this.editPackData;
+                    // パックの編集フォームを閉じる
+                    this.editPackId = null;
                 },
 
             }
