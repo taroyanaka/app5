@@ -81,6 +81,26 @@
             </div>
             <div class="project-list">
                 <div v-for="project in sortedProjects" :key="project.id" class="project">
+                    <!-- プロジェクトに6_2_1. プロジェクトに価格を設定（目標価格と現在価格）
+6_2_2. 客観価格 -->
+<!-- target_price: 0,
+current_price: 0,
+objective_prices: [0,], -->
+                    <input v-model="project.current_price" type="number" :placeholder="languageData.current_price">
+                    {{ languageData.current_price }}: ${{ project.current_price }}
+                    <input v-model="project.target_price" type="number" :placeholder="languageData.target_price">
+                    {{ languageData.target_price }}: ${{ project.target_price }}
+                    <!-- add objective_price -->
+                    <button @click="addObjectivePrice(project.id)">addObjectivePrice</button>
+                    <ul>
+                        <li v-for="(objective_price, index) in project.objective_prices" :key="index">
+                            <input v-model="project.objective_prices[index]" type="number" :placeholder="languageData.objective_price">
+                            {{ languageData.objective_price }}: ${{ objective_price }}
+                            <!-- remove -->
+                            <button @click="removeObjectivePrice(project.id, index)">remove</button>
+                        </li>
+                    </ul>
+                    
                     <!-- addMemberToProjectOrPack -->
                     <form @submit.prevent="addMemberToProjectOrPack(project.id, null, getSelectedMember())">
                         <label for="member">メンバーを追加:</label>
@@ -281,6 +301,9 @@
                         dueDate: 96,  // Default due date
                         difficulty: 3,
                         members_ids: [],
+                        target_price: 0,
+                        current_price: 0,
+                        objective_prices: [0,],
                     },
                     newPack: {
                         projectId: null,
@@ -311,8 +334,7 @@
             // mounted
             async mounted() {
                 this.languageData = await loadTranslations();
-                // samplesetup
-                this.sampleProjectAndThePacks();
+                // this.sampleProjectAndThePacks();
             },
             async created() {
                 this.languageData = await loadTranslations();
@@ -483,9 +505,9 @@
                 },
                 sampleProjectAndThePacks() {
                     this.projects = [
-                        { id: 1, name: 'Project 1', description: 'Description 1', kpi: 80, dueDate: 96, difficulty: 3 },
-                        { id: 2, name: 'Project 2', description: 'Description 2', kpi: 60, dueDate: 72, difficulty: 2 },
-                        { id: 3, name: 'Project 3', description: 'Description 3', kpi: 40, dueDate: 48, difficulty: 1 }
+                        { id: 1, name: 'Project 1', description: 'Description 1', kpi: 80, dueDate: 96, difficulty: 3, members: [], target_price: 10, current_price: 0, objective_prices: [0,] }, 
+                        { id: 2, name: 'Project 2', description: 'Description 2', kpi: 60, dueDate: 72, difficulty: 2, members: [], target_price: 20, current_price: 5, objective_prices: [0,] },
+                        { id: 3, name: 'Project 3', description: 'Description 3', kpi: 40, dueDate: 48, difficulty: 1, members: [], target_price: 100, current_price: 0, objective_prices: [0,] }
                     ];
                     // this.packs = [
                     //     { id: 1, projectId: 1, plan: { description: 'Plan 1', done: true, links: [{ name: 'Link 1', href: 'https://example.com', stars: 3 }] }, do: { description: 'Do 1', done: false, links: [] }, check: { description: 'Check 1', done: false, links: [] }, act: { description: 'Act 1', done: false, links: [] }, dueDate: '2023-12-01T00:00:00Z' },
@@ -614,6 +636,14 @@ addImprovementIdea(packId) {
         // show_imporve_idea
         const packIndex = this.packs.findIndex(pack => pack.id === packId);
         this.packs[packIndex].show_imporve_idea = !this.packs[packIndex].show_imporve_idea;
+    },
+    addObjectivePrice(projectId) {
+        const projectIndex = this.projects.findIndex(project => project.id === projectId);
+        this.projects[projectIndex].objective_prices.push(0);
+    },
+    removeObjectivePrice(projectId, index) {
+        const projectIndex = this.projects.findIndex(project => project.id === projectId);
+        this.projects[projectIndex].objective_prices.splice(index, 1);
     },
 
 
