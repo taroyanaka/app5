@@ -196,13 +196,44 @@
                     
                     <h3>{{ getProjectName(pack.projectId) }}</h3>
                     <div v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done, indent: true }">
-                        <!-- doneボタン -->
-                        <button @click="done_or_undone(pack,stage)">{{ languageData.done }}</button>
+
+                        <!-- ImprovementIdea表示の表示非表示を行うボタン(デフォルトは非表示) -->
+                        <button @click="toggleImprovementIdea(pack.id)">toggleImprovementIdea</button>
+                        <div class="show_imporve_idea" v-if="pack.show_imporve_idea">
+                            <p>improvement_idea</p>
+                            <!-- ImprovementIdea表示 -->
+                            <!-- {{pack.improvement_ideas}} -->
+                            <!-- addImprovementIdea(packId) {
+                            removeImprovementIdea(packId, ideaId) {
+                            addImprovementIdeaLink(packId, ideaId) {
+                            removeImprovementIdeaLink(packId, ideaId, linkIndex) { -->
+                            <!-- new_improvement_ideaのform 1文字以上50文字以下 -->
+                            <input type="text" v-model="new_improvement_idea" minlength="1" maxlength="50">
+                            <!-- addImprovementIdeaのボタン -->
+                            <button @click="addImprovementIdea(pack.id)">addImprovementIdea</button>
+                            <!-- improvement_ideaのcrud -->
+                            <div v-for="(idea, ideaIndex) in pack.improvement_ideas" :key="ideaIndex">
+                                <p>{{ idea.description }}</p>
+                                <button @click="removeImprovementIdea(pack.id, idea.id)">delete</button>
+                                <!-- link name -->
+                                <input type="text" :placeholder="languageData.linkName" v-model="idea_link_desc" minlength="1" maxlength="100">
+                                <input v-model="idea_link" type="url" :placeholder="languageData.linkHref">
+                                <button @click="addImprovementIdeaLink(pack.id, idea.id, idea_link)">add link</button>
+                                <div v-for="(link, linkIndex) in idea.links" :key="linkIndex">
+                                    <a :href="link.url" target="_blank">{{ link.description }}</a>
+                                    <button @click="removeImprovementIdeaLink(pack.id, idea.id, linkIndex)">delete</button>
+                                </div>
+                            </div>
+                        </div>
+
                         <p>{{ languageData[stage] }}: {{ pack[stage].description }}</p>
                         <div v-for="(link, linkIndex) in pack[stage].links" :key="linkIndex">
                             <a :href="link.href" target="_blank">{{ link.name }}</a>
                             <span class="stars">{{ '★'.repeat(link.stars) }}</span>
                         </div>
+                        <!-- doneボタン -->
+                        <button @click="done_or_undone(pack,stage)">{{ languageData.done }}</button>
+
                     </div>
                     <p>{{ languageData.dueDate }}: {{ (() => new Date(pack.dueDate).toLocaleString('ja-JP', {timeZone: 'Asia/Tokyo'}))() }}</p>
                     <button @click="editPack(pack.id)">edit</button>
@@ -230,6 +261,16 @@
         const app = Vue.createApp({
             data() {
                 return {
+                    new_improvement_idea: 'sample idea',
+                    idea_link_desc: '',
+                    idea_link: '',
+                    improvement_idea: {
+                        id: null,
+                        packId: null,
+                        type: 'immediate', // immediate or non-immediate
+                        description: '',
+                        links: []
+                    },
                     selectedMemberId: '',
                     activeTab: 'projects',
                     languageData: {},  // To be populated with translations
@@ -249,6 +290,7 @@
                         act: { description: '', done: false, links: [] },
                         dueDate: '2023-12-01T00:00:00Z',
                         members_ids: [],
+                        improvement_ideas: [],
                     },
                     projects: [],
                     packs: [],
@@ -291,27 +333,8 @@
             },
             methods: {
                 getSelectedMember() {
-        return this.members.find(member => member.id === this.selectedMemberId);
-    },
-    // addMemberToProjectOrPack(projectId, packId, member) {
-    //     const project = this.projects.find(p => p.id === projectId);
-    //     if (project) {
-    //         if (packId) {
-    //             const pack = project.packs.find(p => p.id === packId);
-    //             if (pack) {
-    //                 pack.members = pack.members || [];
-    //                 pack.members.push(member);
-    //             }
-    //         } else {
-    //             project.members = project.members || [];
-    //             project.members.push(member);
-    //         }
-    //     }
-    //     // pack
-    //     const pack = this.packs.find(p => p.id === packId);
-        
-
-    // },
+                    return this.members.find(member => member.id === this.selectedMemberId);
+                },
                 addMember() {
                     if (this.newMember.position.length > 10) {
                         alert('役職は10文字以下にしてください。');
@@ -464,14 +487,50 @@
                         { id: 2, name: 'Project 2', description: 'Description 2', kpi: 60, dueDate: 72, difficulty: 2 },
                         { id: 3, name: 'Project 3', description: 'Description 3', kpi: 40, dueDate: 48, difficulty: 1 }
                     ];
+                    // this.packs = [
+                    //     { id: 1, projectId: 1, plan: { description: 'Plan 1', done: true, links: [{ name: 'Link 1', href: 'https://example.com', stars: 3 }] }, do: { description: 'Do 1', done: false, links: [] }, check: { description: 'Check 1', done: false, links: [] }, act: { description: 'Act 1', done: false, links: [] }, dueDate: '2023-12-01T00:00:00Z' },
+                    //     { id: 2, projectId: 1, plan: { description: 'Plan 2', done: true, links: [] }, do: { description: 'Do 2', done: true, links: [] }, check: { description: 'Check 2', done: false, links: [] }, act: { description: 'Act 2', done: false, links: [] }, dueDate: '2023-12-05T00:00:00Z' },
+                    //     { id: 3, projectId: 2, plan: { description: 'Plan 3', done: true, links: [] }, do: { description: 'Do 3', done: true, links: [] }, check: { description: 'Check 3', done: true, links: [] }, act: { description: 'Act 3', done: true, links: [] }, dueDate: '2023-12-10T00:00:00Z' },
+                    //     { id: 4, projectId: 2, plan: { description: 'Plan 4', done: true, links: [] }, do: { description: 'Do 4', done: true, links: [] }, check: { description: 'Check 4', done: true, links: [] }, act: { description: 'Act 4', done: false, links: [] }, dueDate: '2023-12-15T00:00:00Z' },
+                    //     { id: 5, projectId: 3, plan: { description: 'Plan 5', done: true, links: [] }, do: { description: 'Do 5', done: true, links: [] }, check: { description: 'Check 5', done: false, links: [] }, act: { description: 'Act 5', done: false, links: [] }, dueDate: '2023-12-20T00:00:00Z' },
+                    //     { id: 6, projectId: 3, plan: { description: 'Plan 6', done: true, links: [] }, do: { description: 'Do 6', done: true, links: [] }, check: { description: 'Check 6', done: true, links: [] }, act: { description: 'Act 6', done: false, links: [] }, dueDate: '2023-12-25T00:00:00Z' }
+                    // ];
+
                     this.packs = [
-                        { id: 1, projectId: 1, plan: { description: 'Plan 1', done: true, links: [{ name: 'Link 1', href: 'https://example.com', stars: 3 }] }, do: { description: 'Do 1', done: false, links: [] }, check: { description: 'Check 1', done: false, links: [] }, act: { description: 'Act 1', done: false, links: [] }, dueDate: '2023-12-01T00:00:00Z' },
-                        { id: 2, projectId: 1, plan: { description: 'Plan 2', done: true, links: [] }, do: { description: 'Do 2', done: true, links: [] }, check: { description: 'Check 2', done: false, links: [] }, act: { description: 'Act 2', done: false, links: [] }, dueDate: '2023-12-05T00:00:00Z' },
-                        { id: 3, projectId: 2, plan: { description: 'Plan 3', done: true, links: [] }, do: { description: 'Do 3', done: true, links: [] }, check: { description: 'Check 3', done: true, links: [] }, act: { description: 'Act 3', done: true, links: [] }, dueDate: '2023-12-10T00:00:00Z' },
-                        { id: 4, projectId: 2, plan: { description: 'Plan 4', done: true, links: [] }, do: { description: 'Do 4', done: true, links: [] }, check: { description: 'Check 4', done: true, links: [] }, act: { description: 'Act 4', done: false, links: [] }, dueDate: '2023-12-15T00:00:00Z' },
-                        { id: 5, projectId: 3, plan: { description: 'Plan 5', done: true, links: [] }, do: { description: 'Do 5', done: true, links: [] }, check: { description: 'Check 5', done: false, links: [] }, act: { description: 'Act 5', done: false, links: [] }, dueDate: '2023-12-20T00:00:00Z' },
-                        { id: 6, projectId: 3, plan: { description: 'Plan 6', done: true, links: [] }, do: { description: 'Do 6', done: true, links: [] }, check: { description: 'Check 6', done: true, links: [] }, act: { description: 'Act 6', done: false, links: [] }, dueDate: '2023-12-25T00:00:00Z' }
+                        { id: 1, projectId: 1, plan: { description: 'Plan 1', done: true, links: [{ name: 'Link 1', href: 'https://example.com', stars: 3 }] }, do: { description: 'Do 1', done: false, links: [] }, check: { description: 'Check 1', done: false, links: [] }, act: { description: 'Act 1', done: false, links: [] }, dueDate: '2023-12-01T00:00:00Z', improvement_ideas: [] },
+                        { id: 2, projectId: 1, plan: { description: 'Plan 2', done: true, links: [] }, do: { description: 'Do 2', done: true, links: [] }, check: { description: 'Check 2', done: false, links: [] }, act: { description: 'Act 2', done: false, links: [] }, dueDate: '2023-12-05T00:00:00Z', improvement_ideas: [] },
+                        { id: 3, projectId: 2, plan: { description: 'Plan 3', done: true, links: [] }, do: { description: 'Do 3', done: true, links: [] }, check: { description: 'Check 3', done: true, links: [] }, act: { description: 'Act 3', done: true, links: [] }, dueDate: '2023-12-10T00:00:00Z', improvement_ideas: [] },
+                        { id: 4, projectId: 2, plan: { description: 'Plan 4', done: true, links: [] }, do: { description: 'Do 4', done: true, links: [] }, check: { description: 'Check 4', done: true, links: [] }, act: { description: 'Act 4', done: false, links: [] }, dueDate: '2023-12-15T00:00:00Z', improvement_ideas: [] },
+                        { id: 5, projectId: 3, plan: { description: 'Plan 5', done: true, links: [] }, do: { description: 'Do 5', done: true, links: [] }, check: { description: 'Check 5', done: false, links: [] }, act: { description: 'Act 5', done: false, links: [] }, dueDate: '2023-12-20T00:00:00Z', improvement_ideas: [] },
+                        { id: 6, projectId: 3, plan: { description: 'Plan 6', done: true, links: [] }, do: { description: 'Do 6', done: true, links: [] }, check: { description: 'Check 6', done: true, links: [] }, act: { description: 'Act 6', done: false, links: [] }, dueDate: '2023-12-25T00:00:00Z', improvement_ideas: [] }
                     ];
+                    // improvement_idea: {
+                        // id: null,
+                        // packId: null,
+                        // type: 'immediate', // immediate or non-immediate
+                        // description: '',
+                        // links: []
+                    // },
+                    // improvement_ideaのサンプルデータ
+                    this.packs[0].improvement_ideas = [
+                        { id: 1, packId: 1, type: 'immediate', description: 'Immediate Improvement Idea 1', links: [{ url: 'https://example.com', description: 'Link 1' }] },
+                        { id: 2, packId: 1, type: 'non-immediate', description: 'Non-Immediate Improvement Idea 1', links: [{ url: 'https://example.com', description: 'Link 1' }] }
+                    ];
+                    this.packs[1].improvement_ideas = [
+                        { id: 3, packId: 2, type: 'immediate', description: 'Immediate Improvement Idea 2', links: [{ url: 'https://example.com', description: 'Link 1' }] },
+                        { id: 4, packId: 2, type: 'non-immediate', description: 'Non-Immediate Improvement Idea 2', links: [{ url: 'https://example.com', description: 'Link 1' }] }
+                    ];
+                    // packs4,5には存在せず、3と6には存在
+                    this.packs[3].improvement_ideas = [
+                        { id: 5, packId: 3, type: 'immediate', description: 'Immediate Improvement Idea 3', links: [{ url: 'https://example.com', description: 'Link 1' }] },
+                        { id: 6, packId: 3, type: 'non-immediate', description: 'Non-Immediate Improvement Idea 3', links: [{ url: 'https://example.com', description: 'Link 1' }] }
+                    ];
+                    this.packs[5].improvement_ideas = [
+                        { id: 7, packId: 6, type: 'immediate', description: 'Immediate Improvement Idea 4', links: [{ url: 'https://example.com', description: 'Link 1' }] },
+                        { id: 8, packId: 6, type: 'non-immediate', description: 'Non-Immediate Improvement Idea 4', links: [{ url: 'https://example.com', description: 'Link 1' }] }
+                    ];
+
+
                     // メンバーのサンプルデータ
                     this.members = [
                         { id: 1, name: 'Member 1', position: 'Position 1', link: 'https://example.com' },
@@ -510,7 +569,55 @@
                     this.packs[packIndex] = this.editPackData;
                     // パックの編集フォームを閉じる
                     this.editPackId = null;
-                }
+                },
+//                 以下を実装するための関数
+// 6_1. 改善案ボタンの追加
+// 6_1_1. PDCAそれぞれに改善案を0以上追加可能
+// 6_1_2. 改善案のタイプは即時と非即時の2種類
+// 6_1_3. 改善案に最大5つのリンクを追加可能
+// 6_1_4. リンクには0文字以上100文字以下の補足を追加可能
+addImprovementIdea(packId) {
+      const newIdea = {
+        id: Date.now(),
+        packId,
+        type: 'immediate',
+        description: this.new_improvement_idea,
+        links: []
+      };
+      const packIndex = this.packs.findIndex(pack => pack.id === packId);
+      this.packs[packIndex].improvement_ideas.push(newIdea);
+    },
+    removeImprovementIdea(packId, ideaId) {
+      const packIndex = this.packs.findIndex(pack => pack.id === packId);
+      this.packs[packIndex].improvement_ideas = this.packs[packIndex].improvement_ideas.filter(idea => idea.id !== ideaId);
+    },
+    addImprovementIdeaLink(packId, ideaId, idea_link, idea_link_desc) {
+        // packId, ideaId, idea_link, idea_link_descチェック。エラーならアラート
+        if(!packId || !ideaId || !idea_link || !idea_link_desc) {
+            alert('packId, ideaId, idea_link, idea_link_descは必須です。');
+            return;
+        }
+      const packIndex = this.packs.findIndex(pack => pack.id === packId);
+      const ideaIndex = this.packs[packIndex].improvement_ideas.findIndex(idea => idea.id === ideaId);
+      if (this.packs[packIndex].improvement_ideas[ideaIndex].links.length < 5) {
+        this.packs[packIndex].improvement_ideas[ideaIndex].links.push({ url: idea_link, description: idea_link_desc });
+      } else {
+        alert('リンクは最大5つまで追加可能です。');
+      }
+    },
+    removeImprovementIdeaLink(packId, ideaId, linkIndex) {
+      const packIndex = this.packs.findIndex(pack => pack.id === packId);
+      const ideaIndex = this.packs[packIndex].improvement_ideas.findIndex(idea => idea.id === ideaId);
+      this.packs[packIndex].improvement_ideas[ideaIndex].links.splice(linkIndex, 1);
+    },
+    toggleImprovementIdea(packId) {
+        // show_imporve_idea
+        const packIndex = this.packs.findIndex(pack => pack.id === packId);
+        this.packs[packIndex].show_imporve_idea = !this.packs[packIndex].show_imporve_idea;
+    },
+
+
+
             }
         }).mount('#app');
     </script>
