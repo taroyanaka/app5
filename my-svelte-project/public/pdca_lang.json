@@ -27,5 +27,13 @@
     "packsSummary": "Packs Summary",
     "postToTwitter": "Post Project to Twitter",
     "postPackToTwitter": "Post Pack to Twitter",
+    "sortByPDCAAsc": "Sort by PDCA Ascending",
+    "sortByPDCADesc": "Sort by PDCA Descending",
+    "sortByDueDateAsc": "Sort by Due Date Ascending",
+    "sortByDueDateDesc": "Sort by Due Date Descending",
+    "sortByStarsAsc": "Sort by Stars Ascending",
+    "sortByStarsDesc": "Sort by Stars Descending",
+    "sortByKPIAsc": "Sort by KPI Ascending",
+    "sortByKPIDesc": "Sort by KPI Descending",
     "languageIcon": "🇬🇧"
 }

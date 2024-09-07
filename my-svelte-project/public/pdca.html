@@ -10,7 +10,9 @@
         .done {
             background-color: #f0f0f0;
         }
-        /* :class="{ done: pack[stage].done }をインデント表示 */
+        .indent {
+            margin-left: 1em;
+        }
 
 
     </style>
@@ -68,7 +70,7 @@
                         <div v-for="pack in getPacksByProject(project.id)" :key="pack.id" class="pack-summary">
                             <!-- <p>{{ formatProgress(pack) }}</p> -->
                              <!-- doneのstageはバックグラウンド灰色で表示 -->
-<span v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done }">{{ languageData[stage] }}: {{ pack[stage].description }}</span>
+                            <span v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done }">{{ languageData[stage] }}: {{ pack[stage].description }}</span>
                             <button @click="viewPacks(project.id)">{{ languageData.viewPacks }}</button>
                             {{project.id}}
                         </div>
@@ -110,6 +112,7 @@
             <button @click="addPack">{{ languageData.addPack }}</button>
 
             <h2>{{ languageData.existingPacks }}</h2>
+            Existing Packs
             <div>
                 <button @click="sortPacks('pdca', 'asc')">{{ languageData.sortByPDCAAsc }}</button>
                 <button @click="sortPacks('pdca', 'desc')">{{ languageData.sortByPDCADesc }}</button>
@@ -123,7 +126,8 @@
             <div class="pack-list">
                 <div v-for="pack in sortedPacks" :key="pack.id" class="pack">
                     <h3>{{ getProjectName(pack.projectId) }}</h3>
-                    <div v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done }">
+                    abcdefg
+                    <div v-for="(stage, index) in ['plan', 'do', 'check', 'act']" :key="index" :class="{ done: pack[stage].done, indent: true }">
                         <!-- doneボタン -->
                         <button @click="done_or_undone(pack,stage)">{{ languageData.done }}</button>
                         <p>{{ languageData[stage] }}: {{ pack[stage].description }}</p>
@@ -183,6 +187,12 @@
                         packs: 'asc'
                     }
                 };
+            },
+            // mounted
+            async mounted() {
+                this.languageData = await loadTranslations();
+                // samplesetup
+                this.sampleProjectAndThePacks();
             },
             async created() {
                 this.languageData = await loadTranslations();
