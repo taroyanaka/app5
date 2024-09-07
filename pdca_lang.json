@@ -40,5 +40,6 @@
     "current_price": "Current Price",
     "target_price": "Target Price",
     "objective_price": "Objective Price",
+    "priceDescription": "Objective priceDescription",
     "languageIcon": "🇬🇧"
 }
