@@ -24,19 +24,17 @@
 let web_data_surveys = [];
 let web_data_mySurveysAndResponses = [];
 let web_data_myResponses = [];
-    let app5_title = 'GAFAM';
-    let app5_text = `https://www.google.com
-https://www.amazon.com
-https://www.apple.com
-https://www.microsoft.com
-https://www.facebook.com`;
+    // let app5_title = 'GAFAM';
+//     let app5_text = `https://www.google.com
+// https://www.amazon.com
+// https://www.apple.com
+// https://www.microsoft.com
+// https://www.facebook.com`;
 
-    let is_editing_app5_title = false;
-    let url_list = '';
+    // let is_editing_app5_title = false;
     // const endpoint = "https://cotton-concrete-catsup.glitch.me";
     const endpoint = "http://localhost:8000";
     let open_volume = 1;
-    let url_list_lines = [];
     let options = [];
     let urls = [];
 
@@ -215,33 +213,23 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
 
 
     $: {
-        url_list_lines = url_list.split('\n').filter(line => line.trim() !== '');
-        if (url_list_lines.length > 100) {
-            error_message = 'URLリストは100行までです。';
+        console.log('web_data_surveys:', web_data_surveys);
+        console.log('web_data_mySurveysAndResponses:', web_data_mySurveysAndResponses);
+        console.log('web_data_myResponses:', web_data_myResponses);
+// create surveryのボタンを押した時に空欄があったらエラーを表示する
+        if (survey_title === '' || survey_description === '' || questions === '') {
+            error_message = 'Please fill in all fields.';
         } else {
             error_message = '';
         }
-        options = Array.from({ length: url_list_lines.length }, (_, i) => i + 1);
-        if (options.length > 0) {
-            open_volume = Math.max(open_volume, options[options.length - 1]);
+        // create responseのボタンを押した時に空欄があったらエラーを表示する
+        if (answers === '') {
+            error_message = 'Please fill in all fields.';
+        } else {
+            error_message = '';
         }
-    }
 
-    function service_tab_open(url) {
-        window.open(url, '_blank');
-    }
 
-    async function service_exe() {
-        urls = url_list_lines.slice(0, open_volume);
-        urls.forEach(url => service_tab_open(url));
-    }
-
-    function service_toggle_edit_app5_title() {
-        is_editing_app5_title = !is_editing_app5_title;
-    }
-
-    function service_update_app5_title() {
-        is_editing_app5_title = false;
     }
 
     onMount(() => {
@@ -370,13 +358,6 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
         <div class="right-column">
             <!-- sample_dataボタン -->
             <button on:click={sample_data}>Sample Data</button>
-            {#if is_editing_app5_title}
-                <input type="text" bind:value={app5_title} />
-                <button on:click={service_update_app5_title}>Update</button>
-            {:else}
-                <button on:click={service_toggle_edit_app5_title}>Change Title</button>
-            {/if}
-            <button on:click={() => survey_description = test_app5_text}>Test Text List</button>
 
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
             <div class="create_survey_mode">
