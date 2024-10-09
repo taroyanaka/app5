@@ -257,7 +257,6 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
                 </button>
                 {/if}
                 <p>{login_result}</p>
-                <p>{app5_title}</p>
                 {#if user}
                 <button on:click={create_record}>Create Record</button>
                 {/if}
