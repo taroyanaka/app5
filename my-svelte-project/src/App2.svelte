@@ -1,3 +1,454 @@
+<script>
+    import { onMount } from 'svelte';
+    import firebase from 'firebase/app';
+    import 'firebase/auth';
+    import { each } from 'svelte/internal';
+
+    const firebase_config = {
+        apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
+        authDomain: "p2auth-ea50a.firebaseapp.com",
+        projectId: "p2auth-ea50a",
+        storageBucket: "p2auth-ea50a.appspot.com",
+        messagingSenderId: "796225429484",
+        appId: "1:796225429484:web:ece56ef2fc0be28cd6eac9"
+    };
+    firebase.initializeApp(firebase_config);
+    const google_provider = new firebase.auth.GoogleAuthProvider();
+
+    let error_message = '';
+    let user = null;
+    let uid = "user1";
+    let your_id = null;
+    let login_result = 'Not logged in';
+    // let web_data = [];
+let web_data_surveys = [];
+let web_data_mySurveysAndResponses = [];
+let web_data_myResponses = [];
+    let app5_title = 'GAFAM';
+    let app5_text = `https://www.google.com
+https://www.amazon.com
+https://www.apple.com
+https://www.microsoft.com
+https://www.facebook.com`;
+
+    let is_editing_app5_title = false;
+    let url_list = '';
+    // const endpoint = "https://cotton-concrete-catsup.glitch.me";
+    const endpoint = "http://localhost:8000";
+    let open_volume = 1;
+    let url_list_lines = [];
+    let options = [];
+    let urls = [];
+
+    //             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作るための変数 -->
+    let survey_title = '';
+    let survey_description = '';
+    let questions = '';
+    let survey_price = 100;
+    let answers = 'abcdef';
+
+    // 以下の項目にサンプルデータを投入するサンプル投入関数
+// survey_title
+// survey_description
+// questions
+// survey_price
+// answers
+// survey_id
+const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+
+    let survey_id = null;
+
+
+
+    const service_name = 'app5!!';
+
+
+    function check_login() {
+        firebase.auth().onAuthStateChanged(current_user => {
+            user = current_user;
+            if (user) {
+                login_result = `Logged in as: ${user.displayName}`;
+                uid = user.uid;
+                fetch_data_with_get();
+            } else {
+                login_result = 'Not logged in';
+                uid = "";
+            }
+        });
+    }
+
+    function google_login() {
+        firebase.auth().signInWithPopup(google_provider).then(result => {
+            user = result.user;
+            login_result = `Logged in as: ${user.displayName}`;
+        }).catch(error => {
+            console.error('Error during Google login:', error);
+            alert('Google login failed. ' + error.message);
+        });
+    }
+
+    function sign_out() {
+        firebase.auth().signOut().then(() => {
+            user = null;
+            login_result = 'Not logged in';
+        }).catch(error => {
+            console.error('Error during sign-out:', error);
+            alert('Sign out failed. ' + error.message);
+        });
+    }
+
+    async function fetch_data() {
+        try {
+            console.log('fetch_data');
+            const response = await fetch(endpoint + '/app5/surveys_and_responses/read_all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ uid })
+            });
+            const data = await response.json();
+            your_id = data.id || null;
+            web_data_surveys = data.surveys;
+            web_data_mySurveysAndResponses = data.mySurveysAndResponses;
+            web_data_myResponses = data.myResponses;
+            // res.status(200).json({ surveys: result_1, mySurveysAndResponses: result_2, myResponses: result_3 });
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        }
+    }
+
+
+
+    async function create_record() {
+        try {
+            const response = await fetch(endpoint + '/app5/surveys/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    uid: uid,
+                    survey_title: survey_title,
+                    survey_description: survey_description,
+                    survey_price: 100,
+                    questions: questions.split('\n'),
+                })
+            });
+            const data = await response.json();
+            console.log('Record created:', data);
+            fetch_data(); // Refresh the data
+        } catch (error) {
+            console.error('Error creating record:', error);
+        }
+    }
+
+    async function delete_record(id) {
+        try {
+            const response = await fetch(endpoint + '/app5/surveys/delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id })
+            });
+            const data = await response.json();
+            console.log('Record deleted:', data);
+            fetch_data(); // Refresh the data
+        } catch (error) {
+            console.error('Error deleting record:', error);
+        }
+    }
+
+    const set_data_to_create_response_mode = (id) => {
+        try {
+            // idが空白の場合はエラー
+        if (!id) throw new Error('ID is empty.');
+        // web_data_surveysが存在しない場合はエラー
+        if (!web_data_surveys) throw new Error('web_data_surveys not found.');
+        // 指定したidのquestionsを取得して、answersの入力欄に表示する
+        const survey = web_data_surveys.find(s => s.id === id);
+        // console.log('id:', id);
+        // console.log('Survey:', survey);
+        if (survey) throw new Error('Survey not found.');
+        if (survey.questions ) throw new Error('Questions not found.');
+        if (typeof survey.questions === 'string' ) throw new Error('Questions not object.');
+        if (JSON.parse(survey.questions) instanceof Array) throw new Error('Questions not array.');
+        // console.log('Questions:', typeof survey.questions);
+        // console.log('parse Questions:', JSON.parse(survey.questions));
+        answers = JSON.parse(survey.questions).join('\n');
+        survey_id = id;
+        } catch (error) {
+            console.error('Error setting data to create response mode:', error);            
+        }
+    }
+
+
+    // // create (POST) /app5/responses/create params: uid, survey_id, answers
+    async function create_response(survey_id) {
+        try {
+            const response = await fetch(endpoint + '/app5/responses/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    uid: uid,
+                    survey_id: survey_id,
+                    answers: answers
+                })
+            });
+            const data = await response.json();
+            console.log('Response created:', data);
+        } catch (error) {
+            console.error('Error creating response:', error);
+        }
+    }
+
+
+
+    $: {
+        url_list_lines = url_list.split('\n').filter(line => line.trim() !== '');
+        if (url_list_lines.length > 100) {
+            error_message = 'URLリストは100行までです。';
+        } else {
+            error_message = '';
+        }
+        options = Array.from({ length: url_list_lines.length }, (_, i) => i + 1);
+        if (options.length > 0) {
+            open_volume = Math.max(open_volume, options[options.length - 1]);
+        }
+    }
+
+    function service_tab_open(url) {
+        window.open(url, '_blank');
+    }
+
+    async function service_exe() {
+        urls = url_list_lines.slice(0, open_volume);
+        urls.forEach(url => service_tab_open(url));
+    }
+
+    function service_toggle_edit_app5_title() {
+        is_editing_app5_title = !is_editing_app5_title;
+    }
+
+    function service_update_app5_title() {
+        is_editing_app5_title = false;
+    }
+
+    onMount(() => {
+        // check_login();
+        fetch_data();
+        // fetch_data_with_get();
+    });
+</script>
+
+<div class="container">
+    <div class="header">
+        <h1>{service_name}</h1>
+        {#if user}
+            <button on:click={sign_out}>Logout</button>
+        {:else}
+            <button on:click={google_login}>Login</button>
+        {/if}
+    </div>
+    <div class="content">
+        <div class="left-column server_side">
+            <div class="console">
+                {#if error_message}
+                <button id="error_message" on:click={() => error_message = ''} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') error_message = ''; }} style="background: none; border: none; padding: 0; margin: 0; color: inherit; font: inherit; cursor: pointer;">
+                    {error_message}
+                </button>
+                {/if}
+                <p>{login_result}</p>
+                <p>{app5_title}</p>
+                {#if user}
+                <button on:click={create_record}>Create Record</button>
+                {/if}
+                <p>uid: {uid}</p>
+                <p>your_id: {your_id}</p>
+            </div>
+
+
+
+            <div class="list">
+                <ul>
+                    <div>
+                        <h2>web_data_surveys</h2>
+                        {#each web_data_surveys as item}
+                            <li>
+                                <div class="in_list">
+                                    <h3>id: {item.id}</h3>
+                                    <h3>title: {item.title},</h3>
+                                    <h4>description: {item.description}</h4>
+                                    <h5>user_id: {item.user_id}</h5>
+                                </div>
+                                questions ->
+                                {#each JSON.parse(item.questions) as question}
+                                    <span>{question}</span>
+                                {/each}
+                                answers ->
+                                {#if item.answers}
+                                    {#each item.answers as all_answer}
+                                        {#each all_answer as answer}
+                                            <span>{answer}</span>
+                                        {/each}
+                                    {/each}
+                                {/if}
+                                <p>price: {item.price}</p>
+                                {#if your_id !== item.user_id}
+                                    <button on:click={() => set_data_to_create_response_mode(item.id)}>回答モードに設定</button>
+                                {/if}
+                            </li>
+                        {/each}
+                    </div>
+                    <div>
+                        <h2>web_data_mySurveysAndResponses</h2>
+                        {#each web_data_mySurveysAndResponses as item}
+                            <li>
+                                <div class="in_list">
+                                    <h3>id: {item.id}</h3>
+                                    <h3>title: {item.title},</h3>
+                                    <h4>description: {item.description}</h4>
+                                    <h5>user_id: {item.user_id}</h5>
+                                </div>
+                                questions ->
+                                {#each JSON.parse(item.questions) as question}
+                                    <span>{question}</span>
+                                {/each}
+                                answers ->
+                                {#if item.answers}
+                                    {#each item.answers as all_answer}
+                                        {#each all_answer as answer}
+                                            <span>{answer}</span>
+                                        {/each}
+                                    {/each}
+                                {/if}
+                                <p>price: {item.price}</p>
+                            </li>
+                        {/each}
+                    </div>
+                    <div>
+                        <h2>web_data_myResponses</h2>
+                        {#each web_data_myResponses as item}
+                            <li>
+                                <div class="in_list">
+                                    <h3>id: {item.id}</h3>
+                                    <h3>title: {item.title},</h3>
+                                    <h4>description: {item.description}</h4>
+                                    <h5>user_id: {item.user_id}</h5>
+                                </div>
+                                questions ->
+                                {#each JSON.parse(item.questions) as question}
+                                    <span>{question}</span>
+                                {/each}
+                                answers ->
+                                {#if item.answers}
+                                    {#each JSON.parse(item.answers) as answer}
+                                        <span>{answer}</span>
+                                    {/each}
+                                {/if}
+                                <p>price: {item.price}</p>
+                            </li>
+                        {/each}
+                    </div>
+                </ul>
+            </div>
+
+
+
+
+    </div>
+        <div class="right-column">
+            <!-- sample_dataボタン -->
+            <button on:click={sample_data}>Sample Data</button>
+            {#if is_editing_app5_title}
+                <input type="text" bind:value={app5_title} />
+                <button on:click={service_update_app5_title}>Update</button>
+            {:else}
+                <button on:click={service_toggle_edit_app5_title}>Change Title</button>
+            {/if}
+            <button on:click={() => survey_description = test_app5_text}>Test Text List</button>
+
+            <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
+            <div class="create_survey_mode">
+                <h3>Create Survey</h3>
+                <form on:submit|preventDefault={create_record}>
+                    <div>
+                        <label for="survey_title">Title:</label>
+                        <input type="text" id="survey_title" bind:value={survey_title} required />
+                    </div>
+                    <div>
+                        <label for="survey_description">Description:</label>
+                        <textarea id="survey_description" bind:value={survey_description}></textarea>
+                    </div>
+                    <div>
+                        <label for="survey_price">Price:</label>
+                        <input type="number" id="survey_price" bind:value={survey_price} min="100" max="10000" step="100" required />
+                    </div>
+                    <div>
+                        <label for="questions">Questions (one per line):</label>
+                        <textarea id="questions" bind:value={questions}></textarea>
+                    </div>
+                    <button type="submit">Create Survey</button>
+                </form>
+            </div>
+
+            <!-- create_response_mode -->
+            <div class="create_response_mode">
+                <h3>Create Response</h3>
+                <!-- uid, survey_id, answers -->
+                <form on:submit|preventDefault={() => create_response(survey_id)}>
+                    <div>
+                        <span>Survey ID: {survey_id}</span>
+                        <label for="answers">Answers (one per line):</label>
+                        <textarea id="answers" bind:value={answers} required></textarea>
+                    </div>
+                    <button type="submit">Create Response</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .content {
+        display: flex;
+        width: 100%;
+    }
+    .left-column, .right-column {
+        flex: 1;
+        padding: 10px;
+    }
+    textarea {
+        width: 100%;
+        height: 50vh;
+    }
+    .in_list > * {
+/* inline要素に */
+        display: inline;
+        /* それぞれの要素を1rem間を開ける */
+        margin-right: 1rem;
+
+    }
+</style>
+
+
+
 <!-- const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
@@ -214,402 +665,3 @@ app.post('/app5/responses/create', (req, res) => {
 app.listen(3000, () => {
     console.log('Server is running on port 3000');
 }); -->
-
-<script>
-    import { onMount } from 'svelte';
-    import firebase from 'firebase/app';
-    import 'firebase/auth';
-    import { each } from 'svelte/internal';
-
-    const firebase_config = {
-        apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
-        authDomain: "p2auth-ea50a.firebaseapp.com",
-        projectId: "p2auth-ea50a",
-        storageBucket: "p2auth-ea50a.appspot.com",
-        messagingSenderId: "796225429484",
-        appId: "1:796225429484:web:ece56ef2fc0be28cd6eac9"
-    };
-    firebase.initializeApp(firebase_config);
-    const google_provider = new firebase.auth.GoogleAuthProvider();
-
-    let error_message = '';
-    let user = null;
-    let uid = "user1";
-    let login_result = 'Not logged in';
-    let web_data = [];
-let web_data_surveys = [];
-let web_data_mySurveysAndResponses = [];
-let web_data_myResponses = [];
-    let app5_title = 'GAFAM';
-    let app5_text = `https://www.google.com
-https://www.amazon.com
-https://www.apple.com
-https://www.microsoft.com
-https://www.facebook.com`;
-
-    let is_editing_app5_title = false;
-    let url_list = '';
-    // const endpoint = "https://cotton-concrete-catsup.glitch.me";
-    const endpoint = "http://localhost:8000";
-    let open_volume = 1;
-    let url_list_lines = [];
-    let options = [];
-    let urls = [];
-
-    //             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作るための変数 -->
-    let survey_title = '';
-    let survey_description = '';
-    let questions = '';
-    let survey_price = 100;
-
-    let answers = '';
-    let survey_id = null;
-
-    const service_name = 'app5!!';
-
-
-    function check_login() {
-        firebase.auth().onAuthStateChanged(current_user => {
-            user = current_user;
-            if (user) {
-                login_result = `Logged in as: ${user.displayName}`;
-                uid = user.uid;
-                fetch_data_with_get();
-            } else {
-                login_result = 'Not logged in';
-                uid = "";
-            }
-        });
-    }
-
-    function google_login() {
-        firebase.auth().signInWithPopup(google_provider).then(result => {
-            user = result.user;
-            login_result = `Logged in as: ${user.displayName}`;
-        }).catch(error => {
-            console.error('Error during Google login:', error);
-            alert('Google login failed. ' + error.message);
-        });
-    }
-
-    function sign_out() {
-        firebase.auth().signOut().then(() => {
-            user = null;
-            login_result = 'Not logged in';
-        }).catch(error => {
-            console.error('Error during sign-out:', error);
-            alert('Sign out failed. ' + error.message);
-        });
-    }
-
-    async function fetch_data() {
-        try {
-            console.log('fetch_data');
-            const response = await fetch(endpoint + '/app5/surveys_and_responses/read_all', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ uid })
-            });
-            const data = await response.json();
-            web_data_surveys = data.surveys;
-            web_data_mySurveysAndResponses = data.mySurveysAndResponses;
-            web_data_myResponses = data.myResponses;
-            // res.status(200).json({ surveys: result_1, mySurveysAndResponses: result_2, myResponses: result_3 });
-        } catch (error) {
-            console.error("Error fetching data:", error);
-        }
-    }
-
-
-
-    async function create_record() {
-        try {
-            convert_data(app5_title, app5_text);
-            const response = await fetch(endpoint + '/app5/surveys/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    uid: uid,
-                    survey_title: survey_title,
-                    survey_description: survey_description,
-                    survey_price: 100,
-                    questions: questions,
-                })
-            });
-            const data = await response.json();
-            console.log('Record created:', data);
-            fetch_data(); // Refresh the data
-        } catch (error) {
-            console.error('Error creating record:', error);
-        }
-    }
-
-    async function delete_record(id) {
-        try {
-            const response = await fetch(endpoint + '/app5/surveys/delete', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ id })
-            });
-            const data = await response.json();
-            console.log('Record deleted:', data);
-            fetch_data(); // Refresh the data
-        } catch (error) {
-            console.error('Error deleting record:', error);
-        }
-    }
-
-    // // create (POST) /app5/responses/create params: uid, survey_id, answers
-    async function create_response(survey_id) {
-        try {
-            const response = await fetch(endpoint + '/app5/responses/create', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    uid: uid,
-                    survey_id: survey_id,
-                    answers: answers
-                })
-            });
-            const data = await response.json();
-            console.log('Response created:', data);
-        } catch (error) {
-            console.error('Error creating response:', error);
-        }
-    }
-
-
-
-    $: {
-        url_list_lines = url_list.split('\n').filter(line => line.trim() !== '');
-        if (url_list_lines.length > 100) {
-            error_message = 'URLリストは100行までです。';
-        } else {
-            error_message = '';
-        }
-        options = Array.from({ length: url_list_lines.length }, (_, i) => i + 1);
-        if (options.length > 0) {
-            open_volume = Math.max(open_volume, options[options.length - 1]);
-        }
-    }
-
-    function service_tab_open(url) {
-        window.open(url, '_blank');
-    }
-
-    async function service_exe() {
-        urls = url_list_lines.slice(0, open_volume);
-        urls.forEach(url => service_tab_open(url));
-    }
-
-    function service_toggle_edit_app5_title() {
-        is_editing_app5_title = !is_editing_app5_title;
-    }
-
-    function service_update_app5_title() {
-        is_editing_app5_title = false;
-    }
-
-    onMount(() => {
-        // check_login();
-        fetch_data();
-        // fetch_data_with_get();
-    });
-</script>
-
-<div class="container">
-    <div class="header">
-        <h1>{service_name}</h1>
-        {#if user}
-            <button on:click={sign_out}>Logout</button>
-        {:else}
-            <button on:click={google_login}>Login</button>
-        {/if}
-    </div>
-    <div class="content">
-        <div class="left-column server_side">
-            <div class="console">
-                {#if error_message}
-                <button id="error_message" on:click={() => error_message = ''} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') error_message = ''; }} style="background: none; border: none; padding: 0; margin: 0; color: inherit; font: inherit; cursor: pointer;">
-                    {error_message}
-                </button>
-                {/if}
-                <p>{login_result}</p>
-                <p>{app5_title}</p>
-                {#if user}
-                <button on:click={create_record}>Create Record</button>
-                {/if}
-                <p>uid: {uid}</p>
-            </div>
-            <div class="list">
-                <ul>
-<div>
-    <h2>web_data_surveys</h2>
-    {#each web_data_surveys as item}
-    <li>
-<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
-        questions ->
-        {#each JSON.parse(item.questions) as question}
-            <span>{question}</span>
-        {/each}
-        answers ->
-        {#if item.answers}
-        {#each item.answers as all_answer}
-            {#each all_answer as answer}
-                <span>{answer}</span>
-            {/each}
-        {/each}
-        {/if}
-        <p>price: {item.price}</p>
-        <!-- <p>created_at: {item.created_at}</p> -->
-        <!-- <p>updated_at: {item.updated_at}</p> -->
-        <!-- <p>user_id: {item.user_id}</p> -->
-    </li>
-    {/each}
-</div>
-<div>
-    <h2>web_data_mySurveysAndResponses</h2>
-    {#each web_data_mySurveysAndResponses as item}
-    <!--  -->
-        <li>
-<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
-            questions ->
-            {#each JSON.parse(item.questions) as question}
-                <span>{question}</span>
-            {/each}
-            answers ->
-            {#if item.answers}
-            {#each item.answers as all_answer}
-                {#each all_answer as answer}
-                    <span>{answer}</span>
-                {/each}
-            {/each}
-            {/if}
-            <p>price: {item.price}</p>
-            <!-- <p>created_at: {item.created_at}</p> -->
-            <!-- <p>updated_at: {item.updated_at}</p> -->
-            <!-- <p>user_id: {item.user_id}</p> -->
-        </li>
-    {/each}
-</div>
-<div>
-    <h2>web_data_myResponses</h2>
-    {#each web_data_myResponses as item}
-        <li>
-<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
-            questions ->
-            {#each JSON.parse(item.questions) as question}
-                <span>{question}</span>
-            {/each}
-            answers ->
-            {#if item.answers}
-                {#each JSON.parse(item.answers) as answer}
-                    <span>{answer}</span>
-                {/each}
-            {/if}
-            <p>price: {item.price}</p>
-            <!-- <p>created_at: {item.created_at}</p> -->
-            <!-- <p>updated_at: {item.updated_at}</p> -->
-            <!-- <p>user_id: {item.user_id}</p> -->
-        </li>
-    {/each}
-</div>
-
-                </ul>
-            </div>
-        </div>
-        <div class="right-column">
-            {#if is_editing_app5_title}
-                <input type="text" bind:value={app5_title} />
-                <button on:click={service_update_app5_title}>Update</button>
-            {:else}
-                <button on:click={service_toggle_edit_app5_title}>Change Title</button>
-            {/if}
-            <button on:click={() => survey_description = test_app5_text}>Test Text List</button>
-
-            <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
-            <div class="create_survey_mode">
-                <h3>Create Survey</h3>
-                <form on:submit|preventDefault={create_record}>
-                    <div>
-                        <label for="survey_title">Title:</label>
-                        <input type="text" id="survey_title" bind:value={survey_title} required />
-                    </div>
-                    <div>
-                        <label for="survey_description">Description:</label>
-                        <textarea id="survey_description" bind:value={survey_description}></textarea>
-                    </div>
-                    <div>
-                        <label for="survey_price">Price:</label>
-                        <input type="number" id="survey_price" bind:value={survey_price} min="100" max="10000" step="100" required />
-                    </div>
-                    <div>
-                        <label for="questions">Questions (one per line):</label>
-                        <textarea id="questions" bind:value={questions}></textarea>
-                    </div>
-                    <button type="submit">Create Survey</button>
-                </form>
-            </div>
-
-            <!-- create_response_mode -->
-            <div class="create_response_mode">
-                <h3>Create Response</h3>
-                <!-- if survey_id -->
-                 {#if survey_id}
-                <!-- uid, survey_id, answers -->
-                <form on:submit|preventDefault={() => create_response(survey_id)}>
-                    <div>
-                        <span>Survey ID: {survey_id}</span>
-                        <label for="answers">Answers (one per line):</label>
-                        <textarea id="answers" bind:value={answers} required></textarea>
-                    </div>
-                    <button type="submit">Create Response</button>
-                </form>
-                {/if}
-            </div>
-
-        </div>
-    </div>
-</div>
-
-
-<style>
-    .container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-    }
-    .header {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
-    .content {
-        display: flex;
-        width: 100%;
-    }
-    .left-column, .right-column {
-        flex: 1;
-        padding: 10px;
-    }
-    textarea {
-        width: 100%;
-        height: 50vh;
-    }
-    .in_list > * {
-/* inline要素に */
-        display: inline;
-        /* それぞれの要素を1rem間を開ける */
-        margin-right: 1rem;
-
-    }
-</style>
