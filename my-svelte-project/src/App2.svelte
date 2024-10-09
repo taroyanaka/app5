@@ -219,6 +219,7 @@ app.listen(3000, () => {
     import { onMount } from 'svelte';
     import firebase from 'firebase/app';
     import 'firebase/auth';
+    import { each } from 'svelte/internal';
 
     const firebase_config = {
         apiKey: "AIzaSyBcOlIDP2KWbJuKM0WeMHNp-WvjTVfLt9Y",
@@ -233,9 +234,12 @@ app.listen(3000, () => {
 
     let error_message = '';
     let user = null;
-    let uid = "";
+    let uid = "user1";
     let login_result = 'Not logged in';
     let web_data = [];
+let web_data_surveys = [];
+let web_data_mySurveysAndResponses = [];
+let web_data_myResponses = [];
     let app5_title = 'GAFAM';
     let app5_text = `https://www.google.com
 https://www.amazon.com
@@ -246,13 +250,14 @@ https://www.facebook.com`;
     let convert_data_1 = null;
     let is_editing_app5_title = false;
     let url_list = '';
-    const endpoint = "https://cotton-concrete-catsup.glitch.me";
+    // const endpoint = "https://cotton-concrete-catsup.glitch.me";
+    const endpoint = "http://localhost:8000";
     let open_volume = 1;
     let url_list_lines = [];
     let options = [];
     let urls = [];
 
-    const service_name = 'app5!';
+    const service_name = 'app5!!';
 
     function convert_data(data_0 = app5_title, data_1 = app5_text) {
         convert_data_0 = data_0;
@@ -265,7 +270,7 @@ https://www.facebook.com`;
             if (user) {
                 login_result = `Logged in as: ${user.displayName}`;
                 uid = user.uid;
-                fetch_data(); // Refresh the data
+                fetch_data_with_get();
             } else {
                 login_result = 'Not logged in';
                 uid = "";
@@ -304,11 +309,16 @@ https://www.facebook.com`;
                 body: JSON.stringify({ uid })
             });
             const data = await response.json();
-            web_data = data.surveys;
+            web_data_surveys = data.surveys;
+            web_data_mySurveysAndResponses = data.mySurveysAndResponses;
+            web_data_myResponses = data.myResponses;
+            // res.status(200).json({ surveys: result_1, mySurveysAndResponses: result_2, myResponses: result_3 });
         } catch (error) {
             console.error("Error fetching data:", error);
         }
     }
+
+
 
     async function create_record() {
         try {
@@ -404,8 +414,9 @@ https://www.facebook.com`;
     }
 
     onMount(() => {
-        check_login();
+        // check_login();
         fetch_data();
+        // fetch_data_with_get();
     });
 </script>
 
@@ -432,6 +443,13 @@ https://www.facebook.com`;
     textarea {
         width: 100%;
         height: 50vh;
+    }
+    .in_list > * {
+/* inline要素に */
+        display: inline;
+        /* それぞれの要素を1rem間を開ける */
+        margin-right: 1rem;
+
     }
 </style>
 
@@ -461,15 +479,74 @@ https://www.facebook.com`;
             </div>
             <div class="list">
                 <ul>
-                    {#each web_data as item}
-                        <li>
-                            {item.title}
-                            <button on:click={() => app5_text = item.questions.join('\n')}>Load</button>
-                            {#if user}
-                            <button on:click={() => delete_record(item.id)}>Delete</button>
-                            {/if}
-                        </li>
-                    {/each}
+<div>
+    <h2>web_data_surveys</h2>
+    {#each web_data_surveys as item}
+    <li>
+<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
+        questions ->
+        {#each JSON.parse(item.questions) as question}
+            <span>{question}</span>
+        {/each}
+        answers ->
+        {#if item.answers}
+            {#each JSON.parse(item.answers) as answer}
+                <span>{answer}</span>
+            {/each}
+        {/if}
+        <p>price: {item.price}</p>
+        <!-- <p>created_at: {item.created_at}</p> -->
+        <!-- <p>updated_at: {item.updated_at}</p> -->
+        <!-- <p>user_id: {item.user_id}</p> -->
+    </li>
+    {/each}
+</div>
+<div>
+    <h2>web_data_mySurveysAndResponses</h2>
+    {#each web_data_mySurveysAndResponses as item}
+    <!--  -->
+        <li>
+<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
+            questions ->
+            {#each JSON.parse(item.questions) as question}
+                <span>{question}</span>
+            {/each}
+            answers ->
+            {#if item.answers}
+                {#each JSON.parse(item.answers) as answer}
+                    <span>{answer}</span>
+                {/each}
+            {/if}
+            <p>price: {item.price}</p>
+            <!-- <p>created_at: {item.created_at}</p> -->
+            <!-- <p>updated_at: {item.updated_at}</p> -->
+            <!-- <p>user_id: {item.user_id}</p> -->
+        </li>
+    {/each}
+</div>
+<div>
+    <h2>web_data_myResponses</h2>
+    {#each web_data_myResponses as item}
+        <li>
+<div class="in_list"><h3>id: {item.id}</h3><h3>title: {item.title},</h3><h4>description: {item.description}</h4><h5>user_id: {item.user_id}</h5></div>
+            questions ->
+            {#each JSON.parse(item.questions) as question}
+                <span>{question}</span>
+            {/each}
+            answers ->
+            {#if item.answers}
+                {#each JSON.parse(item.answers) as answer}
+                    <span>{answer}</span>
+                {/each}
+            {/if}
+            <p>price: {item.price}</p>
+            <!-- <p>created_at: {item.created_at}</p> -->
+            <!-- <p>updated_at: {item.updated_at}</p> -->
+            <!-- <p>user_id: {item.user_id}</p> -->
+        </li>
+    {/each}
+</div>
+
                 </ul>
             </div>
         </div>
@@ -487,11 +564,9 @@ https://www.facebook.com`;
             <button on:click={service_exe}>実行</button>
 
             <!-- create_responseのためのボタン -->
-            {#each web_data as item}
-
-            <!-- survey_idで回答 -->
+            <!-- {#each web_data as item}
                 <button on:click={() => create_response(item.id)}>回答する</button>
-            {/each}
+            {/each} -->
 
         </div>
     </div>
