@@ -257,12 +257,14 @@ https://www.facebook.com`;
     let options = [];
     let urls = [];
 
+    //             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作るための変数 -->
+    let survey_title = '';
+    let survey_description = '';
+    let questions = '';
+    let survey_price = 100;
+
     const service_name = 'app5!!';
 
-    function convert_data(data_0 = app5_title, data_1 = app5_text) {
-        convert_data_0 = data_0;
-        convert_data_1 = data_1;
-    }
 
     function check_login() {
         firebase.auth().onAuthStateChanged(current_user => {
@@ -330,10 +332,10 @@ https://www.facebook.com`;
                 },
                 body: JSON.stringify({
                     uid: uid,
-                    survey_title: convert_data_0,
-                    survey_description: '',
+                    survey_title: survey_title,
+                    survey_description: survey_description,
                     survey_price: 100,
-                    questions: convert_data_1.split('\n')
+                    questions: questions,
                 })
             });
             const data = await response.json();
@@ -420,39 +422,6 @@ https://www.facebook.com`;
     });
 </script>
 
-<style>
-    .container {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-    }
-    .header {
-        display: flex;
-        justify-content: space-between;
-        width: 100%;
-    }
-    .content {
-        display: flex;
-        width: 100%;
-    }
-    .left-column, .right-column {
-        flex: 1;
-        padding: 10px;
-    }
-    textarea {
-        width: 100%;
-        height: 50vh;
-    }
-    .in_list > * {
-/* inline要素に */
-        display: inline;
-        /* それぞれの要素を1rem間を開ける */
-        margin-right: 1rem;
-
-    }
-</style>
-
 <div class="container">
     <div class="header">
         <h1>{service_name}</h1>
@@ -490,9 +459,11 @@ https://www.facebook.com`;
         {/each}
         answers ->
         {#if item.answers}
-            {#each JSON.parse(item.answers) as answer}
+        {#each item.answers as all_answer}
+            {#each all_answer as answer}
                 <span>{answer}</span>
             {/each}
+        {/each}
         {/if}
         <p>price: {item.price}</p>
         <!-- <p>created_at: {item.created_at}</p> -->
@@ -513,9 +484,11 @@ https://www.facebook.com`;
             {/each}
             answers ->
             {#if item.answers}
-                {#each JSON.parse(item.answers) as answer}
+            {#each item.answers as all_answer}
+                {#each all_answer as answer}
                     <span>{answer}</span>
                 {/each}
+            {/each}
             {/if}
             <p>price: {item.price}</p>
             <!-- <p>created_at: {item.created_at}</p> -->
@@ -557,11 +530,32 @@ https://www.facebook.com`;
             {:else}
                 <button on:click={service_toggle_edit_app5_title}>Change Title</button>
             {/if}
-            <button on:click={() => app5_text = test_app5_text}>Test Text List</button>
-            <label for="open_volume">Open Volume:</label>
-            <input type="number" id="open_volume" bind:value={open_volume} min="1" max={options.length} />
-            <textarea bind:value={app5_text} placeholder="Enter text list here"></textarea>
-            <button on:click={service_exe}>実行</button>
+            <button on:click={() => survey_description = test_app5_text}>Test Text List</button>
+
+            <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
+            <div>
+                <h3>Create Survey</h3>
+                <form on:submit|preventDefault={create_record}>
+                    <div>
+                        <label for="survey_title">Title:</label>
+                        <input type="text" id="survey_title" bind:value={survey_title} required />
+                    </div>
+                    <div>
+                        <label for="survey_description">Description:</label>
+                        <textarea id="survey_description" bind:value={survey_description}></textarea>
+                    </div>
+                    <div>
+                        <label for="survey_price">Price:</label>
+                        <input type="number" id="survey_price" bind:value={survey_price} min="100" max="10000" step="100" required />
+                    </div>
+                    <div>
+                        <label for="questions">Questions (one per line):</label>
+                        <textarea id="questions" bind:value={questions}></textarea>
+                    </div>
+                    <button type="submit">Create Survey</button>
+                </form>
+            </div>
+
 
             <!-- create_responseのためのボタン -->
             <!-- {#each web_data as item}
@@ -571,3 +565,37 @@ https://www.facebook.com`;
         </div>
     </div>
 </div>
+
+
+<style>
+    .container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px;
+    }
+    .header {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .content {
+        display: flex;
+        width: 100%;
+    }
+    .left-column, .right-column {
+        flex: 1;
+        padding: 10px;
+    }
+    textarea {
+        width: 100%;
+        height: 50vh;
+    }
+    .in_list > * {
+/* inline要素に */
+        display: inline;
+        /* それぞれの要素を1rem間を開ける */
+        margin-right: 1rem;
+
+    }
+</style>
