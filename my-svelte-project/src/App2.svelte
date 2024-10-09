@@ -246,8 +246,7 @@ https://www.amazon.com
 https://www.apple.com
 https://www.microsoft.com
 https://www.facebook.com`;
-    let convert_data_0 = null;
-    let convert_data_1 = null;
+
     let is_editing_app5_title = false;
     let url_list = '';
     // const endpoint = "https://cotton-concrete-catsup.glitch.me";
@@ -262,6 +261,9 @@ https://www.facebook.com`;
     let survey_description = '';
     let questions = '';
     let survey_price = 100;
+
+    let answers = '';
+    let survey_id = null;
 
     const service_name = 'app5!!';
 
@@ -373,7 +375,8 @@ https://www.facebook.com`;
                 },
                 body: JSON.stringify({
                     uid: uid,
-                    survey_id: survey_id
+                    survey_id: survey_id,
+                    answers: answers
                 })
             });
             const data = await response.json();
@@ -533,7 +536,7 @@ https://www.facebook.com`;
             <button on:click={() => survey_description = test_app5_text}>Test Text List</button>
 
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
-            <div>
+            <div class="create_survey_mode">
                 <h3>Create Survey</h3>
                 <form on:submit|preventDefault={create_record}>
                     <div>
@@ -556,11 +559,22 @@ https://www.facebook.com`;
                 </form>
             </div>
 
-
-            <!-- create_responseのためのボタン -->
-            <!-- {#each web_data as item}
-                <button on:click={() => create_response(item.id)}>回答する</button>
-            {/each} -->
+            <!-- create_response_mode -->
+            <div class="create_response_mode">
+                <h3>Create Response</h3>
+                <!-- if survey_id -->
+                 {#if survey_id}
+                <!-- uid, survey_id, answers -->
+                <form on:submit|preventDefault={() => create_response(survey_id)}>
+                    <div>
+                        <span>Survey ID: {survey_id}</span>
+                        <label for="answers">Answers (one per line):</label>
+                        <textarea id="answers" bind:value={answers} required></textarea>
+                    </div>
+                    <button type="submit">Create Response</button>
+                </form>
+                {/if}
+            </div>
 
         </div>
     </div>
