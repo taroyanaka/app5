@@ -20,43 +20,24 @@
     let uid = "user1";
     let your_id = null;
     let login_result = 'Not logged in';
-    // let web_data = [];
 let web_data_surveys = [];
 let web_data_mySurveysAndResponses = [];
 let web_data_myResponses = [];
-    // let app5_title = 'GAFAM';
-//     let app5_text = `https://www.google.com
-// https://www.amazon.com
-// https://www.apple.com
-// https://www.microsoft.com
-// https://www.facebook.com`;
-
-    // let is_editing_app5_title = false;
     // const endpoint = "https://cotton-concrete-catsup.glitch.me";
     const endpoint = "http://localhost:8000";
-    let open_volume = 1;
-    let options = [];
-    let urls = [];
 
-    //             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作るための変数 -->
+
+    let users = [];
+
     let survey_title = '';
     let survey_description = '';
     let questions = '';
     let survey_price = 100;
-    let answers = 'abcdef';
+    let answers = '';
 
-    // 以下の項目にサンプルデータを投入するサンプル投入関数
-// survey_title
-// survey_description
-// questions
-// survey_price
-// answers
-// survey_id
-const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+    const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
 
     let survey_id = null;
-
-
 
     const service_name = 'app5!!';
 
@@ -67,7 +48,7 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             if (user) {
                 login_result = `Logged in as: ${user.displayName}`;
                 uid = user.uid;
-                fetch_data_with_get();
+                fetch_data();
             } else {
                 login_result = 'Not logged in';
                 uid = "";
@@ -95,6 +76,23 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
         });
     }
 
+    // 以下をfetchする関数を追加
+    const initializeDatabase = async () => {
+        try {
+            const response = await fetch(endpoint + '/app5/init-database', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ password: 'init' })
+            });
+            const data = await response.json();
+            console.log('Database initialized:', data);
+        } catch (error) {
+            console.error('Error initializing database:', error);
+        }
+    };
+
     async function fetch_data() {
         try {
             console.log('fetch_data');
@@ -106,11 +104,11 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
                 body: JSON.stringify({ uid })
             });
             const data = await response.json();
+            users = data.users || [];
             your_id = data.id || null;
-            web_data_surveys = data.surveys;
-            web_data_mySurveysAndResponses = data.mySurveysAndResponses;
-            web_data_myResponses = data.myResponses;
-            // res.status(200).json({ surveys: result_1, mySurveysAndResponses: result_2, myResponses: result_3 });
+            web_data_surveys = data.surveys || [];
+            web_data_mySurveysAndResponses = data.mySurveysAndResponses || [];
+            web_data_myResponses = data.myResponses || [];
         } catch (error) {
             console.error("Error fetching data:", error);
         }
@@ -135,7 +133,7 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             });
             const data = await response.json();
             console.log('Record created:', data);
-            fetch_data(); // Refresh the data
+            await fetch_data(); // Refresh the data
         } catch (error) {
             console.error('Error creating record:', error);
         }
@@ -152,7 +150,7 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             });
             const data = await response.json();
             console.log('Record deleted:', data);
-            fetch_data(); // Refresh the data
+            await fetch_data(); // Refresh the data
         } catch (error) {
             console.error('Error deleting record:', error);
         }
@@ -160,15 +158,9 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
 
     const set_data_to_create_response_mode = (id) => {
         try {
-            // idが空白の場合はエラー
-            console.log('id:', id);
         if (!id) throw new Error('ID is empty.');
-        // web_data_surveysが存在しない場合はエラー
         if (!web_data_surveys) throw new Error('web_data_surveys not found.');
-        // 指定したidのquestionsを取得して、answersの入力欄に表示する
         const survey = web_data_surveys.find(s => s.id === id);
-        // console.log('id:', id);
-        // console.log('Survey:', survey);
         if (!survey) throw new Error('Survey not found.');
         if (!survey.questions) throw new Error('Questions not found.');
         if (typeof survey.questions !== 'string') throw new Error('Questions not a string.');
@@ -179,8 +171,6 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             throw new Error('Questions not valid JSON.');
         }
         if (!Array.isArray(parsedQuestions)) throw new Error('Questions not an array.');
-        // console.log('Questions:', typeof survey.questions);
-        // console.log('parse Questions:', JSON.parse(survey.questions));
         answers = JSON.parse(survey.questions).join('\n');
         survey_id = id;
         } catch (error) {
@@ -205,6 +195,7 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             });
             const data = await response.json();
             console.log('Response created:', data);
+            await fetch_data(); // Refresh the data
         } catch (error) {
             console.error('Error creating response:', error);
         }
@@ -216,7 +207,7 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
         console.log('web_data_surveys:', web_data_surveys);
         console.log('web_data_mySurveysAndResponses:', web_data_mySurveysAndResponses);
         console.log('web_data_myResponses:', web_data_myResponses);
-// create surveryのボタンを押した時に空欄があったらエラーを表示する
+        // create surveryのボタンを押した時に空欄があったらエラーを表示する
         if (survey_title === '' || survey_description === '' || questions === '') {
             error_message = 'Please fill in all fields.';
         } else {
@@ -235,12 +226,13 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
     onMount(() => {
         // check_login();
         fetch_data();
-        // fetch_data_with_get();
     });
 </script>
 
 <div class="container">
     <div class="header">
+        <!-- initializeDatabase -->
+        <button on:click={initializeDatabase}>開発用初期化ボタンInitialize Database</button>
         <h1>{service_name}</h1>
         {#if user}
             <button on:click={sign_out}>Logout</button>
@@ -269,6 +261,17 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
             <div class="list">
                 <ul>
                     <div>
+                        <h2>users</h2>
+                        {#each users as user}
+                            <li>
+                                <div class="in_list">
+                                    <h3>id: {user.id}</h3>
+                                    <h3>balance: {user.balance}</h3>
+                                    <!-- balance -->
+                                </div>
+                            </li>
+                        {/each}
+
                         <h2>web_data_surveys</h2>
                         {#each web_data_surveys as item}
                             <li>
@@ -291,7 +294,8 @@ const sample_data = () => [survey_title, survey_description, questions, survey_p
                                     {/each}
                                 {/if}
                                 <p>price: {item.price}</p>
-                                {#if your_id !== item.user_id}
+                                already: {item.already}
+                                {#if your_id !== item.user_id && item.already === false && uid !== '' && uid !== null}
                                     <button on:click={() => set_data_to_create_response_mode(item.id)}>set_data_to_create_response_mode</button>
                                 {/if}
                             </li>
