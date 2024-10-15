@@ -15,9 +15,18 @@
     firebase.initializeApp(firebase_config);
     const google_provider = new firebase.auth.GoogleAuthProvider();
 
+    const in_dev = true;
+    // const in_dev = false;
+
+    let activeTab = 0;
+    const setActiveTab = (index) => activeTab = index;
+
+    let mode = 'survey'; // 'survey' または 'response' の値を持つ
+
     let error_message = '';
     let user = null;
     let uid = "user1";
+    // let uid = "";
     let your_id = null;
     let login_result = 'Not logged in';
 let web_data_surveys = [];
@@ -35,7 +44,14 @@ let web_data_myResponses = [];
     let survey_price = 100;
     let answers = '';
 
-    const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+
+// uidをuser1かuser2かuser3に変更するボタン(引数で変更するuserを指定)(開発用のボタン)
+const change_user = (user) => {
+    user === 'user1' ? uid = 'user1' : user === 'user2' ? uid = 'user2' : user === 'user3' ? uid = 'user3' : null
+    fetch_data();
+}
+
 
     let survey_id = null;
 
@@ -233,6 +249,13 @@ let web_data_myResponses = [];
     <div class="header">
         <!-- initializeDatabase -->
         <button on:click={initializeDatabase}>開発用初期化ボタンInitialize Database</button>
+        <!-- button change_user 1,2,3-->
+        {#if in_dev}
+        <button on:click={() => change_user('user1')}>Change User to user1</button>
+        <button on:click={() => change_user('user2')}>Change User to user2</button>
+        <button on:click={() => change_user('user3')}>Change User to user3</button>
+        {/if}
+
         <h1>{service_name}</h1>
         {#if user}
             <button on:click={sign_out}>Logout</button>
@@ -259,8 +282,14 @@ let web_data_myResponses = [];
 
 
             <div class="list">
+                <div class="tabs">
+                    <div class="tab {activeTab === 0 ? 'active' : ''}" on:click={() => setActiveTab(0)}>Tab 1</div>
+                    <div class="tab {activeTab === 1 ? 'active' : ''}" on:click={() => setActiveTab(1)}>Tab 2</div>
+                    <div class="tab {activeTab === 2 ? 'active' : ''}" on:click={() => setActiveTab(2)}>Tab 3</div>
+                    <div class="tab {activeTab === 3 ? 'active' : ''}" on:click={() => setActiveTab(3)}>Tab 4</div>
+                </div>
                 <ul>
-                    <div>
+                    <div class="tab-content {activeTab === 0 ? 'active' : ''}">
                         <h2>users</h2>
                         {#each users as user}
                             <li>
@@ -271,7 +300,8 @@ let web_data_myResponses = [];
                                 </div>
                             </li>
                         {/each}
-
+                    </div>
+                    <div class="tab-content {activeTab === 1 ? 'active' : ''}">
                         <h2>web_data_surveys</h2>
                         {#each web_data_surveys as item}
                             <li>
@@ -301,7 +331,7 @@ let web_data_myResponses = [];
                             </li>
                         {/each}
                     </div>
-                    <div>
+                    <div class="tab-content {activeTab === 2 ? 'active' : ''}">
                         <h2>web_data_mySurveysAndResponses</h2>
                         {#each web_data_mySurveysAndResponses as item}
                             <li>
@@ -327,7 +357,7 @@ let web_data_myResponses = [];
                             </li>
                         {/each}
                     </div>
-                    <div>
+                    <div class="tab-content {activeTab === 3 ? 'active' : ''}">
                         <h2>web_data_myResponses</h2>
                         {#each web_data_myResponses as item}
                             <li>
@@ -362,6 +392,10 @@ let web_data_myResponses = [];
             <!-- sample_dataボタン -->
             <button on:click={sample_data}>Sample Data</button>
 
+            <button on:click={() => mode = 'survey'}>Create Survey</button>
+<button on:click={() => mode = 'response'}>Create Response</button>
+
+{#if mode === 'survey'}
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
             <div class="create_survey_mode">
                 <h3>Create Survey</h3>
@@ -386,6 +420,7 @@ let web_data_myResponses = [];
                 </form>
             </div>
 
+{:else if mode === 'response'}
             <!-- create_response_mode -->
             <div class="create_response_mode">
                 <h3>Create Response</h3>
@@ -399,6 +434,8 @@ let web_data_myResponses = [];
                     <button type="submit">Create Response</button>
                 </form>
             </div>
+{/if}
+
 
         </div>
     </div>
@@ -435,6 +472,35 @@ let web_data_myResponses = [];
         /* それぞれの要素を1rem間を開ける */
         margin-right: 1rem;
 
+    }
+
+
+    .tabs {
+        display: flex;
+        cursor: pointer;
+    }
+
+    .tab {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-bottom: none;
+        background-color: #f1f1f1;
+    }
+
+    .tab.active {
+        background-color: #fff;
+        border-bottom: 1px solid #fff;
+    }
+
+    .tab-content {
+        display: none;
+        padding: 10px;
+        border: 1px solid #ccc;
+        background-color: #fff;
+    }
+
+    .tab-content.active {
+        display: block;
     }
 </style>
 
