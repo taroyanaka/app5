@@ -23,6 +23,21 @@
 
     let mode = 'survey'; // 'survey' または 'response' の値を持つ
 
+const mode_change = (mode) => {
+// modeが'response'かつsurvey_idがnullではないmodeを'response'に変更する
+    if (mode === 'response' && survey_id !== null) {
+        mode = 'response';
+    }
+    // modeが'survey'かつsurvey_idがnullの場合はmodeを'survey'に変更する
+    if (mode === 'survey' && survey_id === null) {
+        mode = 'survey';
+    }
+}
+// modeを'survey'に変更し、なおかつ、survey_idをnullにする関数
+const mode_change_to_survey = () => {mode = 'survey', survey_id = null}
+
+
+
     let error_message = '';
     let user = null;
     let uid = "user1";
@@ -194,6 +209,16 @@ const change_user = (user) => {
         }
     }
 
+    // mode_change
+    const set_data_to_create_response_mode_and_mode_change_to_response = (id) => {
+        try {
+            set_data_to_create_response_mode(id);
+            mode = 'response';
+        } catch (error) {
+            console.error('Error setting data to create response mode and mode change to response:', error);
+        }
+    }
+
 
     // // create (POST) /app5/responses/create params: uid, survey_id, answers
     async function create_response(survey_id) {
@@ -326,7 +351,8 @@ const change_user = (user) => {
                                 <p>price: {item.price}</p>
                                 already: {item.already}
                                 {#if your_id !== item.user_id && item.already === false && uid !== '' && uid !== null}
-                                    <button on:click={() => set_data_to_create_response_mode(item.id)}>set_data_to_create_response_mode</button>
+                                    <!-- <button on:click={() => set_data_to_create_response_mode(item.id)}>set_data_to_create_response_mode</button> -->
+                                    <button on:click={() => set_data_to_create_response_mode_and_mode_change_to_response(item.id)}>set_data_to_create_response_mode</button>
                                 {/if}
                             </li>
                         {/each}
@@ -424,6 +450,8 @@ const change_user = (user) => {
             <!-- create_response_mode -->
             <div class="create_response_mode">
                 <h3>Create Response</h3>
+                <!-- mode_change_to_surveyボタン -->
+                <button on:click={mode_change_to_survey}>mode_change_to_survey</button>
                 <!-- uid, survey_id, answers -->
                 <form on:submit|preventDefault={() => create_response(survey_id)}>
                     <div>
