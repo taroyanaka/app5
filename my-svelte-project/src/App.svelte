@@ -21,7 +21,8 @@
     let activeTab = 0;
     const setActiveTab = (index) => activeTab = index;
 
-    let mode = 'survey'; // 'survey' または 'response' の値を持つ
+    // let mode = 'survey'; // 'survey' または 'response' の値を持つ
+    let mode = 'list'; // 'list' または 'response' の値を持つ
 
 const mode_change = (mode) => {
 // modeが'response'かつsurvey_idがnullではないmodeを'response'に変更する
@@ -34,11 +35,12 @@ const mode_change = (mode) => {
     }
 }
 // modeを'survey'に変更し、なおかつ、survey_idをnullにする関数
-const mode_change_to_survey = () => {mode = 'survey', survey_id = null}
+const mode_change_to_list = () => {mode = 'list', survey_id = null, answers = ''};
 
 
 
-    let error_message = '';
+    // let error_message = '';
+    let all_error_message = [];
     let user = null;
     let uid = "user1";
     // let uid = "";
@@ -149,6 +151,25 @@ const change_user = (user) => {
 
     async function create_record() {
         try {
+            //             login_result = 'Not logged in';
+            //             uid = "";
+            //             survey_title = '';
+            //             survey_description = '';
+            //             questions = '';
+            // 上記のルールに従って、エラーメッセージを表示する
+            all_error_message = [];
+            if(in_dev === false && login_result === 'Not logged in'){all_error_message.push('Please log in.')};
+            if (uid === '' || uid === null) all_error_message.push('Please log in.');
+            if (survey_title === '' ){all_error_message.push('Please fill survey title.')};
+            if (survey_description === '' ){all_error_message.push('Please fill survey description.')};
+            if (questions === ''){all_error_message.push('Please fill survey questions.')};
+            if (!Array.isArray(questions)) all_error_message.push('Invalid questions. It must be an array.');
+            if (questions.length === 0) all_error_message.push('Invalid questions. It must contain at least one question.');
+            // all_error_messageが空でなければ早期リターン
+            if(all_error_message.length > 0){return};
+
+
+
             const response = await fetch(endpoint + '/app5/surveys/create', {
                 method: 'POST',
                 headers: {
@@ -243,25 +264,32 @@ const change_user = (user) => {
     }
 
 
+    $: {
+    console.log("check 1")
+    if(mode === 'survey'){
+        all_error_message = [];
+        if (survey_title === ''){all_error_message.push('Please fill survey title.')};
+        if (survey_description === ''){all_error_message.push('Please fill survey description.')};
+        if(questions === ''){all_error_message.push('Please fill questions.')};
+        // 上記の3つの条件が全て満たされていたらエラーメッセージを消す
+        if(survey_title !== '' && survey_description !== '' && questions !== ''){all_error_message = []};
+    }
+    }
 
     $: {
-        console.log('web_data_surveys:', web_data_surveys);
-        console.log('web_data_mySurveysAndResponses:', web_data_mySurveysAndResponses);
-        console.log('web_data_myResponses:', web_data_myResponses);
-        // create surveryのボタンを押した時に空欄があったらエラーを表示する
-        if (survey_title === '' || survey_description === '' || questions === '') {
-            error_message = 'Please fill in all fields.';
-        } else {
-            error_message = '';
-        }
-        // create responseのボタンを押した時に空欄があったらエラーを表示する
-        if (answers === '') {
-            error_message = 'Please fill in all fields.';
-        } else {
-            error_message = '';
-        }
+    console.log("check 2")
+    if(mode === 'response'){
+        console.log('answers:', answers);
+        if (answers === '') {all_error_message.push('Please fill in answers.');}
+        else {all_error_message = []};
+    }
+    }
 
-
+    $: {
+    console.log("check 3")
+    console.log('web_data_surveys:', web_data_surveys);
+    console.log('web_data_mySurveysAndResponses:', web_data_mySurveysAndResponses);
+    console.log('web_data_myResponses:', web_data_myResponses);
     }
 
     onMount(() => {
@@ -282,6 +310,8 @@ const change_user = (user) => {
         {/if}
 
         <h1>{service_name}</h1>
+        <h2>{mode}</h2>
+        <button on:click={create_record}>Create Record</button>
         {#if user}
             <button on:click={sign_out}>Logout</button>
         {:else}
@@ -289,22 +319,25 @@ const change_user = (user) => {
         {/if}
     </div>
     <div class="content">
-        <div class="left-column server_side">
-            <div class="console">
-                {#if error_message}
-                <button id="error_message" on:click={() => error_message = ''} on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') error_message = ''; }} style="background: none; border: none; padding: 0; margin: 0; color: inherit; font: inherit; cursor: pointer;">
-                    {error_message}
-                </button>
-                {/if}
-                <p>{login_result}</p>
-                {#if user}
-                <button on:click={create_record}>Create Record</button>
-                {/if}
-                <p>uid: {uid}</p>
-                <p>your_id: {your_id}</p>
-            </div>
 
+<div class="left-column" style="{ (in_dev === false && (mode === 'survery' || mode === 'response')) ? 'display: none;' : ''}">
 
+    <div class="console">
+        {#if all_error_message.length > 0}
+        {#each all_error_message as any_error_message}
+        <button id="error_message" on:click={() => all_error_message = []}>
+            {any_error_message}
+        </button>
+        {/each}
+        {/if}
+
+        <p>{login_result}</p>
+        {#if user}
+        <button on:click={create_record}>Create Record</button>
+        {/if}
+        <p>uid: {uid}</p>
+        <p>your_id: {your_id}</p>
+    </div>
 
             <div class="list">
                 <div class="tabs">
@@ -414,7 +447,9 @@ const change_user = (user) => {
 
 
     </div>
-        <div class="right-column">
+<!-- <div class="right-column"> -->
+<div class="right-column" style="{in_dev === false && mode === 'list' ? 'display: none;' : ''}">
+
             <!-- sample_dataボタン -->
             <button on:click={sample_data}>Sample Data</button>
 
@@ -445,13 +480,30 @@ const change_user = (user) => {
                     <button type="submit">Create Survey</button>
                 </form>
             </div>
-
 {:else if mode === 'response'}
             <!-- create_response_mode -->
             <div class="create_response_mode">
                 <h3>Create Response</h3>
-                <!-- mode_change_to_surveyボタン -->
-                <button on:click={mode_change_to_survey}>mode_change_to_survey</button>
+                <!-- mode_change_to_listボタン -->
+                <button on:click={mode_change_to_list}>mode_change_to_list</button>
+                <!-- titleの表示 -->
+                <div>
+                    <h4>someone's question Title:</h4>
+                    <p>{web_data_surveys.find(s => s.id === survey_id).title}</p>
+                </div>
+
+                <!-- descriptionの表示 -->
+                <div>
+                    <h4>someone's question Description:</h4>
+                    <p>{web_data_surveys.find(s => s.id === survey_id).description}</p>
+                </div>
+
+                <!-- price -->
+                <div>
+                    <h4>someone's question Price:</h4>
+                    <p>{web_data_surveys.find(s => s.id === survey_id).price}</p>
+                </div>
+
                 <!-- uid, survey_id, answers -->
                 <form on:submit|preventDefault={() => create_response(survey_id)}>
                     <div>
@@ -462,9 +514,10 @@ const change_user = (user) => {
                     <button type="submit">Create Response</button>
                 </form>
             </div>
+{:else if mode === 'list'}
+            <div>
+            </div>
 {/if}
-
-
         </div>
     </div>
 </div>
@@ -530,6 +583,7 @@ const change_user = (user) => {
     .tab-content.active {
         display: block;
     }
+
 </style>
 
 
