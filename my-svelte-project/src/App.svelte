@@ -168,8 +168,6 @@ const change_user = (user) => {
             // all_error_messageが空でなければ早期リターン
             if(all_error_message.length > 0){return};
 
-
-
             const response = await fetch(endpoint + '/app5/surveys/create', {
                 method: 'POST',
                 headers: {
@@ -341,10 +339,10 @@ const change_user = (user) => {
 
             <div class="list">
                 <div class="tabs">
-                    <div class="tab {activeTab === 0 ? 'active' : ''}" on:click={() => setActiveTab(0)}>Tab 1</div>
-                    <div class="tab {activeTab === 1 ? 'active' : ''}" on:click={() => setActiveTab(1)}>Tab 2</div>
-                    <div class="tab {activeTab === 2 ? 'active' : ''}" on:click={() => setActiveTab(2)}>Tab 3</div>
-                    <div class="tab {activeTab === 3 ? 'active' : ''}" on:click={() => setActiveTab(3)}>Tab 4</div>
+                    <button class="tab {activeTab === 0 ? 'active' : ''}" on:click={() => setActiveTab(0)}>Tab 1</button>
+                    <button class="tab {activeTab === 1 ? 'active' : ''}" on:click={() => setActiveTab(1)}>Tab 2</button>
+                    <button class="tab {activeTab === 2 ? 'active' : ''}" on:click={() => setActiveTab(2)}>Tab 3</button>
+                    <button class="tab {activeTab === 3 ? 'active' : ''}" on:click={() => setActiveTab(3)}>Tab 4</button>
                 </div>
                 <ul>
                     <div class="tab-content {activeTab === 0 ? 'active' : ''}">
