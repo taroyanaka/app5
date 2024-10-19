@@ -38,40 +38,45 @@ $: {
     // --display_survey_mode
     // --display_survey_or_response_mode
     // --display_list_mode
-document.documentElement.style.setProperty('--tab', test_in_dev === true ? 'block' : 'none');
-document.documentElement.style.setProperty('--display_all_mode', test_in_dev === true ? 'block' : 'none');
-document.documentElement.style.setProperty('--display_survey_or_response_mode', test_in_dev === true ? 'block' : 'none');
-document.documentElement.style.setProperty('--display_list_mode', test_in_dev === true ? 'block' : 'none');
+    function updateCSSVariables() {
+        const displayValue = test_in_dev ? 'block' : 'none';
+        document.documentElement.style.setProperty('--tab', displayValue);
+        document.documentElement.style.setProperty('--display_all_mode', displayValue);
+        document.documentElement.style.setProperty('--display_survey_or_response_mode', displayValue);
+        document.documentElement.style.setProperty('--display_list_mode', displayValue);
+    }
 
-function setDesignMode() {
-        if (design_mode === 'list') {
-        document.documentElement.style.setProperty('--display_list_mode', 'block');
-        document.documentElement.style.setProperty('--display_survey_mode', 'none');
-        document.documentElement.style.setProperty('--display_response_mode', 'none');
-        document.documentElement.style.setProperty('--display_survey_or_response_mode', 'none');
+    function setDesignMode() {
+        const modes = {
+            list: {
+                '--display_list_mode': 'block',
+                '--display_survey_mode': 'none',
+                '--display_response_mode': 'none',
+                '--display_survey_or_response_mode': 'none'
+            },
+            survey: {
+                '--display_list_mode': 'none',
+                '--display_survey_mode': 'block',
+                '--display_response_mode': 'none',
+                '--display_survey_or_response_mode': 'block'
+            },
+            response: {
+                '--display_list_mode': 'none',
+                '--display_survey_mode': 'none',
+                '--display_response_mode': 'block',
+                '--display_survey_or_response_mode': 'block'
+            }
+        };
 
-        } else if (design_mode === 'survey') {
-            document.documentElement.style.setProperty('--display_list_mode', 'none');
-            document.documentElement.style.setProperty('--display_survey_mode', 'block');
-            document.documentElement.style.setProperty('--display_response_mode', 'none');
-            document.documentElement.style.setProperty('--display_survey_or_response_mode', 'block');
-
-
-        } else if (design_mode === 'response') {
-            document.documentElement.style.setProperty('--display_list_mode', 'none');
-            document.documentElement.style.setProperty('--display_survey_mode', 'none');
-            document.documentElement.style.setProperty('--display_response_mode', 'block');
-            document.documentElement.style.setProperty('--display_survey_or_response_mode', 'block');
-
+        const modeSettings = modes[design_mode];
+        for (const [key, value] of Object.entries(modeSettings)) {
+            document.documentElement.style.setProperty(key, value);
         }
     }
 
-    // 初期モードを設定
-    if(test_in_dev === false){
-        setDesignMode();
-    }
-
-
+    // 初期設定
+    updateCSSVariables();
+    if (test_in_dev === false) setDesignMode();
 }
 
 
@@ -342,7 +347,7 @@ let web_data_myResponses = [];
     {/if}
         <h1>{service_name}</h1>
         <h2>{design_mode}</h2>
-        <button on:click={create_record}>Create Record</button>
+        <button on:click={() => design_mode = 'survey'}>Create Survey</button>
         {#if user}
             <button on:click={sign_out}>Logout</button>
         {:else}
@@ -364,7 +369,7 @@ let web_data_myResponses = [];
 
         <p>{login_result}</p>
         {#if user}
-        <button on:click={create_record}>Create Record</button>
+        <button on:click={() => design_mode = 'survey'}>Create Survey</button>
         {/if}
         <p>uid: {uid}</p>
         <p>your_id: {your_id}</p>
@@ -484,12 +489,12 @@ let web_data_myResponses = [];
             <!-- sample_dataボタン -->
             <button on:click={test_sample_data}>Sample Data</button>
 
-            <button on:click={() => design_mode = 'survey'}>Create Survey</button>
 <button on:click={() => design_mode = 'response'}>Create Response</button>
 
-<!-- {#if design_mode === 'survey'} -->
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
             <div class="create_survey_mode">
+                <!-- list_modeに変更 -->
+                <button on:click={design_mode_change_to_list}>design_mode_change_to_list</button>
                 <h3>Create Survey</h3>
                 <form on:submit|preventDefault={create_record}>
                     <div>
@@ -511,7 +516,6 @@ let web_data_myResponses = [];
                     <button type="submit">Create Survey</button>
                 </form>
             </div>
-<!-- {:else if design_mode === 'response'} -->
             <!-- create_response_mode -->
 {#if web_data_surveys.length > 0 && survey_id}
             <div class="create_response_mode">
@@ -548,10 +552,10 @@ let web_data_myResponses = [];
             </div>
 {/if}
 
-<!-- {:else if design_mode === 'list'} -->
-            <div>
-            </div>
-<!-- {/if} -->
+            <!-- <div> -->
+            <!-- </div> -->
+
+
         </div>
     </div>
 </div>
