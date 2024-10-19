@@ -26,6 +26,51 @@ const test_change_user = (user) => {
 }
 const test_in_dev = true;
 // const test_in_dev = false;
+// CSS変数を動的に変更する
+$: {
+    // test_in_devによって以下の--から始まるcss変数が変更される
+    // --tab
+    // --display_response_mode
+    // --display_survey_mode
+    // --display_survey_or_response_mode
+    // --display_list_mode
+document.documentElement.style.setProperty('--tab', test_in_dev === true ? 'block' : 'none');
+document.documentElement.style.setProperty('--display_all_mode', test_in_dev === true ? 'block' : 'none');
+document.documentElement.style.setProperty('--display_survey_or_response_mode', test_in_dev === true ? 'block' : 'none');
+document.documentElement.style.setProperty('--display_list_mode', test_in_dev === true ? 'block' : 'none');
+
+function setDesignMode() {
+        if (design_mode === 'list') {
+        document.documentElement.style.setProperty('--display_list_mode', 'block');
+        document.documentElement.style.setProperty('--display_survey_mode', 'none');
+        document.documentElement.style.setProperty('--display_response_mode', 'none');
+        document.documentElement.style.setProperty('--display_survey_or_response_mode', 'none');
+
+        } else if (design_mode === 'survey') {
+            document.documentElement.style.setProperty('--display_list_mode', 'none');
+            document.documentElement.style.setProperty('--display_survey_mode', 'block');
+            document.documentElement.style.setProperty('--display_response_mode', 'none');
+            document.documentElement.style.setProperty('--display_survey_or_response_mode', 'block');
+
+
+        } else if (design_mode === 'response') {
+            document.documentElement.style.setProperty('--display_list_mode', 'none');
+            document.documentElement.style.setProperty('--display_survey_mode', 'none');
+            document.documentElement.style.setProperty('--display_response_mode', 'block');
+            document.documentElement.style.setProperty('--display_survey_or_response_mode', 'block');
+
+        }
+    }
+
+    // 初期モードを設定
+    if(test_in_dev === false){
+        setDesignMode();
+    }
+
+
+}
+
+
 let design_activeTab = 0;
 const design_setActiveTab = (index) => design_activeTab = index;
 let design_mode = 'list'; // 'list' 'survey' または 'response' の値を持つ
@@ -144,7 +189,7 @@ let web_data_myResponses = [];
             //             questions = '';
             // 上記のルールに従って、エラーメッセージを表示する
             all_error_message = [];
-            if(test_in_dev === false && login_result === 'Not logged in'){all_error_message.push('Please log in.')};
+            if (login_result === 'Not logged in'){all_error_message.push('Please log in.')};
             if (uid === '' || uid === null) all_error_message.push('Please log in.');
             if (survey_title === '' ){all_error_message.push('Please fill survey title.')};
             if (survey_description === '' ){all_error_message.push('Please fill survey description.')};
@@ -276,6 +321,7 @@ let web_data_myResponses = [];
     console.log('web_data_myResponses:', web_data_myResponses);
     }
 
+
     onMount(() => {
         // check_login();
         fetch_data();
@@ -284,14 +330,6 @@ let web_data_myResponses = [];
 
 <div class="container">
     <div class="header">
-        <!-- initializeDatabase -->
-        <button on:click={initializeDatabase}>開発用初期化ボタンInitialize Database</button>
-        <!-- button change_user 1,2,3-->
-        {#if test_in_dev}
-        <button on:click={() => change_user('user1')}>Change User to user1</button>
-        <button on:click={() => change_user('user2')}>Change User to user2</button>
-        <button on:click={() => change_user('user3')}>Change User to user3</button>
-        {/if}
 
         <h1>{service_name}</h1>
         <h2>{design_mode}</h2>
@@ -304,7 +342,7 @@ let web_data_myResponses = [];
     </div>
     <div class="content">
 
-<div class="left-column" style="{ (test_in_dev === false && (design_mode === 'survery' || design_mode === 'response')) ? 'display: none;' : ''}">
+<div class="left-column">
 
     <div class="console">
         {#if all_error_message.length > 0}
@@ -432,7 +470,7 @@ let web_data_myResponses = [];
 
     </div>
 <!-- <div class="right-column"> -->
-<div class="right-column" style="{test_in_dev === false && design_mode === 'list' ? 'display: none;' : ''}">
+<div class="right-column">
 
             <!-- sample_dataボタン -->
             <button on:click={test_sample_data}>Sample Data</button>
@@ -440,7 +478,7 @@ let web_data_myResponses = [];
             <button on:click={() => design_mode = 'survey'}>Create Survey</button>
 <button on:click={() => design_mode = 'response'}>Create Response</button>
 
-{#if design_mode === 'survey'}
+<!-- {#if design_mode === 'survey'} -->
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
             <div class="create_survey_mode">
                 <h3>Create Survey</h3>
@@ -464,8 +502,9 @@ let web_data_myResponses = [];
                     <button type="submit">Create Survey</button>
                 </form>
             </div>
-{:else if design_mode === 'response'}
+<!-- {:else if design_mode === 'response'} -->
             <!-- create_response_mode -->
+{#if web_data_surveys.length > 0 && survey_id}
             <div class="create_response_mode">
                 <h3>Create Response</h3>
                 <!-- mode_change_to_listボタン -->
@@ -498,16 +537,25 @@ let web_data_myResponses = [];
                     <button type="submit">Create Response</button>
                 </form>
             </div>
-{:else if design_mode === 'list'}
+{/if}
+
+<!-- {:else if design_mode === 'list'} -->
             <div>
             </div>
-{/if}
+<!-- {/if} -->
         </div>
     </div>
 </div>
 
 
 <style>
+    :root {
+        --tab: flex;
+        --display_all_mode: block;
+        --display_survey_or_response_mode: none;
+        --display_list_mode: block;
+    }
+
     .container {
         display: flex;
         flex-direction: column;
@@ -558,7 +606,7 @@ let web_data_myResponses = [];
     }
 
     .tab-content {
-        display: none;
+        display: var(--tab);
         padding: 10px;
         border: 1px solid #ccc;
         background-color: #fff;
@@ -566,6 +614,23 @@ let web_data_myResponses = [];
 
     .tab-content.active {
         display: block;
+    }
+
+    .create_response_mode {
+        display: var(--display_response_mode);
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+    .create_survey_mode {
+        display: var(--display_survey_mode);
+        padding: 10px;
+        border: 1px solid #ccc;
+    }
+    .right-column {
+        display: var(--display_survey_or_response_mode);
+    }
+    .left-column {
+        display: var(--display_list_mode);
     }
 
 </style>
