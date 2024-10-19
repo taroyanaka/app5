@@ -15,27 +15,22 @@
     firebase.initializeApp(firebase_config);
     const google_provider = new firebase.auth.GoogleAuthProvider();
 
-    const in_dev = true;
-    // const in_dev = false;
 
-    let activeTab = 0;
-    const setActiveTab = (index) => activeTab = index;
-
-    // let mode = 'survey'; // 'survey' または 'response' の値を持つ
-    let mode = 'list'; // 'list' または 'response' の値を持つ
-
-const mode_change = (mode) => {
-// modeが'response'かつsurvey_idがnullではないmodeを'response'に変更する
-    if (mode === 'response' && survey_id !== null) {
-        mode = 'response';
-    }
-    // modeが'survey'かつsurvey_idがnullの場合はmodeを'survey'に変更する
-    if (mode === 'survey' && survey_id === null) {
-        mode = 'survey';
-    }
+// designがprefixになっているものは、デザインのための変数と関数
+// testがprefixになっているものは、テストのための変数と関数
+const test_sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+// uidをuser1かuser2かuser3に変更するボタン(引数で変更するuserを指定)(開発用のボタン)
+const test_change_user = (user) => {
+    user === 'user1' ? uid = 'user1' : user === 'user2' ? uid = 'user2' : user === 'user3' ? uid = 'user3' : null
+    fetch_data();
 }
+const test_in_dev = true;
+// const test_in_dev = false;
+let design_activeTab = 0;
+const design_setActiveTab = (index) => design_activeTab = index;
+let design_mode = 'list'; // 'list' 'survey' または 'response' の値を持つ
 // modeを'survey'に変更し、なおかつ、survey_idをnullにする関数
-const mode_change_to_list = () => {mode = 'list', survey_id = null, answers = ''};
+const design_mode_change_to_list = () => {design_mode = 'list', survey_id = null, answers = ''};
 
 
 
@@ -60,15 +55,6 @@ let web_data_myResponses = [];
     let questions = '';
     let survey_price = 100;
     let answers = '';
-
-const sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
-
-// uidをuser1かuser2かuser3に変更するボタン(引数で変更するuserを指定)(開発用のボタン)
-const change_user = (user) => {
-    user === 'user1' ? uid = 'user1' : user === 'user2' ? uid = 'user2' : user === 'user3' ? uid = 'user3' : null
-    fetch_data();
-}
-
 
     let survey_id = null;
 
@@ -158,7 +144,7 @@ const change_user = (user) => {
             //             questions = '';
             // 上記のルールに従って、エラーメッセージを表示する
             all_error_message = [];
-            if(in_dev === false && login_result === 'Not logged in'){all_error_message.push('Please log in.')};
+            if(test_in_dev === false && login_result === 'Not logged in'){all_error_message.push('Please log in.')};
             if (uid === '' || uid === null) all_error_message.push('Please log in.');
             if (survey_title === '' ){all_error_message.push('Please fill survey title.')};
             if (survey_description === '' ){all_error_message.push('Please fill survey description.')};
@@ -232,7 +218,7 @@ const change_user = (user) => {
     const set_data_to_create_response_mode_and_mode_change_to_response = (id) => {
         try {
             set_data_to_create_response_mode(id);
-            mode = 'response';
+            design_mode = 'response';
         } catch (error) {
             console.error('Error setting data to create response mode and mode change to response:', error);
         }
@@ -264,7 +250,7 @@ const change_user = (user) => {
 
     $: {
     console.log("check 1")
-    if(mode === 'survey'){
+    if(design_mode === 'survey'){
         all_error_message = [];
         if (survey_title === ''){all_error_message.push('Please fill survey title.')};
         if (survey_description === ''){all_error_message.push('Please fill survey description.')};
@@ -276,7 +262,7 @@ const change_user = (user) => {
 
     $: {
     console.log("check 2")
-    if(mode === 'response'){
+    if(design_mode === 'response'){
         console.log('answers:', answers);
         if (answers === '') {all_error_message.push('Please fill in answers.');}
         else {all_error_message = []};
@@ -301,14 +287,14 @@ const change_user = (user) => {
         <!-- initializeDatabase -->
         <button on:click={initializeDatabase}>開発用初期化ボタンInitialize Database</button>
         <!-- button change_user 1,2,3-->
-        {#if in_dev}
+        {#if test_in_dev}
         <button on:click={() => change_user('user1')}>Change User to user1</button>
         <button on:click={() => change_user('user2')}>Change User to user2</button>
         <button on:click={() => change_user('user3')}>Change User to user3</button>
         {/if}
 
         <h1>{service_name}</h1>
-        <h2>{mode}</h2>
+        <h2>{design_mode}</h2>
         <button on:click={create_record}>Create Record</button>
         {#if user}
             <button on:click={sign_out}>Logout</button>
@@ -318,7 +304,7 @@ const change_user = (user) => {
     </div>
     <div class="content">
 
-<div class="left-column" style="{ (in_dev === false && (mode === 'survery' || mode === 'response')) ? 'display: none;' : ''}">
+<div class="left-column" style="{ (test_in_dev === false && (design_mode === 'survery' || design_mode === 'response')) ? 'display: none;' : ''}">
 
     <div class="console">
         {#if all_error_message.length > 0}
@@ -339,13 +325,13 @@ const change_user = (user) => {
 
             <div class="list">
                 <div class="tabs">
-                    <button class="tab {activeTab === 0 ? 'active' : ''}" on:click={() => setActiveTab(0)}>Tab 1</button>
-                    <button class="tab {activeTab === 1 ? 'active' : ''}" on:click={() => setActiveTab(1)}>Tab 2</button>
-                    <button class="tab {activeTab === 2 ? 'active' : ''}" on:click={() => setActiveTab(2)}>Tab 3</button>
-                    <button class="tab {activeTab === 3 ? 'active' : ''}" on:click={() => setActiveTab(3)}>Tab 4</button>
+                    <button class="tab {design_activeTab === 0 ? 'active' : ''}" on:click={() => design_setActiveTab(0)}>Tab 1</button>
+                    <button class="tab {design_activeTab === 1 ? 'active' : ''}" on:click={() => design_setActiveTab(1)}>Tab 2</button>
+                    <button class="tab {design_activeTab === 2 ? 'active' : ''}" on:click={() => design_setActiveTab(2)}>Tab 3</button>
+                    <button class="tab {design_activeTab === 3 ? 'active' : ''}" on:click={() => design_setActiveTab(3)}>Tab 4</button>
                 </div>
                 <ul>
-                    <div class="tab-content {activeTab === 0 ? 'active' : ''}">
+                    <div class="tab-content {design_activeTab === 0 ? 'active' : ''}">
                         <h2>users</h2>
                         {#each users as user}
                             <li>
@@ -357,7 +343,7 @@ const change_user = (user) => {
                             </li>
                         {/each}
                     </div>
-                    <div class="tab-content {activeTab === 1 ? 'active' : ''}">
+                    <div class="tab-content {design_activeTab === 1 ? 'active' : ''}">
                         <h2>web_data_surveys</h2>
                         {#each web_data_surveys as item}
                             <li>
@@ -388,7 +374,7 @@ const change_user = (user) => {
                             </li>
                         {/each}
                     </div>
-                    <div class="tab-content {activeTab === 2 ? 'active' : ''}">
+                    <div class="tab-content {design_activeTab === 2 ? 'active' : ''}">
                         <h2>web_data_mySurveysAndResponses</h2>
                         {#each web_data_mySurveysAndResponses as item}
                             <li>
@@ -414,7 +400,7 @@ const change_user = (user) => {
                             </li>
                         {/each}
                     </div>
-                    <div class="tab-content {activeTab === 3 ? 'active' : ''}">
+                    <div class="tab-content {design_activeTab === 3 ? 'active' : ''}">
                         <h2>web_data_myResponses</h2>
                         {#each web_data_myResponses as item}
                             <li>
@@ -446,15 +432,15 @@ const change_user = (user) => {
 
     </div>
 <!-- <div class="right-column"> -->
-<div class="right-column" style="{in_dev === false && mode === 'list' ? 'display: none;' : ''}">
+<div class="right-column" style="{test_in_dev === false && design_mode === 'list' ? 'display: none;' : ''}">
 
             <!-- sample_dataボタン -->
-            <button on:click={sample_data}>Sample Data</button>
+            <button on:click={test_sample_data}>Sample Data</button>
 
-            <button on:click={() => mode = 'survey'}>Create Survey</button>
-<button on:click={() => mode = 'response'}>Create Response</button>
+            <button on:click={() => design_mode = 'survey'}>Create Survey</button>
+<button on:click={() => design_mode = 'response'}>Create Response</button>
 
-{#if mode === 'survey'}
+{#if design_mode === 'survey'}
             <!-- survey_title, survey_description, survey_price, questions を入力する、それぞれのformを作る -->
             <div class="create_survey_mode">
                 <h3>Create Survey</h3>
@@ -478,12 +464,12 @@ const change_user = (user) => {
                     <button type="submit">Create Survey</button>
                 </form>
             </div>
-{:else if mode === 'response'}
+{:else if design_mode === 'response'}
             <!-- create_response_mode -->
             <div class="create_response_mode">
                 <h3>Create Response</h3>
                 <!-- mode_change_to_listボタン -->
-                <button on:click={mode_change_to_list}>mode_change_to_list</button>
+                <button on:click={design_mode_change_to_list}>design_mode_change_to_list</button>
                 <!-- titleの表示 -->
                 <div>
                     <h4>someone's question Title:</h4>
@@ -512,7 +498,7 @@ const change_user = (user) => {
                     <button type="submit">Create Response</button>
                 </form>
             </div>
-{:else if mode === 'list'}
+{:else if design_mode === 'list'}
             <div>
             </div>
 {/if}
