@@ -19,13 +19,17 @@
 // designがprefixになっているものは、デザインのための変数と関数
 // testがprefixになっているものは、テストのための変数と関数
 const test_sample_data = () => [survey_title, survey_description, questions, survey_price, answers, survey_id] = ['サンプルアンケート', 'サンプルアンケートの説明', '質問1\n質問2\n質問3', 100, '回答1\n回答2\n回答3', 1];
+
+// test_in_devがtrueの場合、
+// 開発用のボタンを表示し、
+// listとsurveyとresponse(responseはsurvey_idがセットされているなら)が全て表示される
+const test_in_dev = true;
+// const test_in_dev = false;
 // uidをuser1かuser2かuser3に変更するボタン(引数で変更するuserを指定)(開発用のボタン)
 const test_change_user = (user) => {
     user === 'user1' ? uid = 'user1' : user === 'user2' ? uid = 'user2' : user === 'user3' ? uid = 'user3' : null
     fetch_data();
 }
-const test_in_dev = true;
-// const test_in_dev = false;
 // CSS変数を動的に変更する
 $: {
     // test_in_devによって以下の--から始まるcss変数が変更される
@@ -330,7 +334,12 @@ let web_data_myResponses = [];
 
 <div class="container">
     <div class="header">
-
+    {#if test_in_dev}
+        <button on:click={initializeDatabase}>開発用初期化ボタンInitialize Database</button>
+        <button on:click={() => test_change_user('user1')}>Change User to user1</button>
+        <button on:click={() => test_change_user('user2')}>Change User to user2</button>
+        <button on:click={() => test_change_user('user3')}>Change User to user3</button>
+    {/if}
         <h1>{service_name}</h1>
         <h2>{design_mode}</h2>
         <button on:click={create_record}>Create Record</button>
